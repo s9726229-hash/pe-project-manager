@@ -49,23 +49,13 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
         const isGroup = !!s.subSteps && s.subSteps.length > 0;
         return (
           <div key={s.id} className={`rounded-lg border border-slate-800 p-3 bg-slate-900/60 ${depth > 0 ? 'ml-6' : ''}`}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <input
                 className="flex-1 min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                 value={s.name}
                 onChange={(e) => onChange(updateStepAt(steps, s.id, { name: e.target.value }))}
                 placeholder="步驟名稱"
               />
-              <button
-                onClick={() => onChange(removeStepAt(steps, s.id))}
-                className="text-slate-500 hover:text-red-400 p-1 shrink-0"
-                title="刪除步驟"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2">
               <label className="text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap shrink-0">
                 並行群組
                 <input
@@ -88,6 +78,13 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
                   />
                 </label>
               )}
+              <button
+                onClick={() => onChange(removeStepAt(steps, s.id))}
+                className="text-slate-500 hover:text-red-400 p-1 shrink-0"
+                title="刪除步驟"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
 
             {isGroup && <p className="text-xs text-slate-500 mt-2">此步驟為分組容器，狀態由子步驟推算，不記錄自己的日期/checklist。</p>}
