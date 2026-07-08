@@ -37,16 +37,36 @@ export default function MilestoneRow({ milestone, onChange, depth = 0 }: Milesto
 
   return (
     <div className={depth > 0 ? 'ml-6' : ''}>
-      <div className={`flex items-center gap-3 py-2 px-3 rounded-lg ${depth === 0 ? 'bg-slate-900/60 border border-slate-800' : ''}`}>
+      <div className={`flex items-center gap-2 flex-wrap py-2 px-3 rounded-lg ${depth === 0 ? 'bg-slate-900/60 border border-slate-800' : ''}`}>
         <span className={`text-xs px-2 py-0.5 rounded shrink-0 w-14 text-center ${STATUS_STYLE[todayStatus]}`}>
           {STATUS_LABEL[todayStatus]}
         </span>
-        <span className={`flex-1 min-w-0 ${depth === 0 ? 'font-medium' : 'text-sm'}`}>{milestone.name}</span>
-        <span className="text-xs text-slate-500 shrink-0 w-40 text-right">
-          {range.start ?? '—'} ~ {range.end ?? '—'}
-        </span>
-        {!isGroup && (
+        <input
+          className={`flex-1 min-w-[8rem] bg-transparent outline-none ${depth === 0 ? 'font-medium' : 'text-sm'}`}
+          value={milestone.name}
+          onChange={(e) => updateField({ name: e.target.value })}
+        />
+
+        {!isGroup ? (
           <>
+            <label className="text-xs text-slate-500 flex items-center gap-1 shrink-0">
+              開始
+              <input
+                type="date"
+                className="bg-slate-800 rounded px-2 py-1 text-xs"
+                value={milestone.plannedStartDate ?? ''}
+                onChange={(e) => updateField({ plannedStartDate: e.target.value })}
+              />
+            </label>
+            <label className="text-xs text-slate-500 flex items-center gap-1 shrink-0">
+              結束
+              <input
+                type="date"
+                className="bg-slate-800 rounded px-2 py-1 text-xs"
+                value={milestone.plannedDate ?? ''}
+                onChange={(e) => updateField({ plannedDate: e.target.value })}
+              />
+            </label>
             <select
               className="bg-slate-800 rounded px-2 py-1 text-xs shrink-0"
               value={milestone.status ?? '待辦'}
@@ -63,6 +83,10 @@ export default function MilestoneRow({ milestone, onChange, depth = 0 }: Milesto
               onChange={(e) => updateField({ owner: e.target.value })}
             />
           </>
+        ) : (
+          <span className="text-xs text-slate-500 shrink-0 w-40 text-right">
+            {range.start ?? '—'} ~ {range.end ?? '—'}
+          </span>
         )}
       </div>
 

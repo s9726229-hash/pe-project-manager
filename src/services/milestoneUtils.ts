@@ -49,9 +49,11 @@ export function getCurrentStage(milestones: Milestone[]): Milestone | undefined 
 
 export type TodayRelativeStatus = 'done' | 'overdue' | 'current' | 'upcoming';
 
-// 只對葉節點有意義：依今天日期判斷這個項目目前處於哪種狀態，用來在表格上標示。
+// 只對葉節點有意義：手動狀態優先（選了進行中/已完成就直接反映，不再被日期蓋過去），
+// 只有還在「待辦」時才用日期推算逾期/進行中/未開始。
 export function getTodayRelativeStatus(m: Milestone, today: Date = new Date()): TodayRelativeStatus {
   if (m.status === '已完成') return 'done';
+  if (m.status === '進行中') return 'current';
   const todayStr = today.toISOString().slice(0, 10);
   if (m.plannedDate && todayStr > m.plannedDate) return 'overdue';
   if (m.plannedStartDate && todayStr >= m.plannedStartDate) return 'current';
