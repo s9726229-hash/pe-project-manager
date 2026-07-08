@@ -3,6 +3,16 @@ import { Copy, Plus, Star, Trash2 } from 'lucide-react';
 import { useTemplates } from '../hooks/useTemplates';
 import StepEditor from '../components/settings/StepEditor';
 
+// 粗略估計文字寬度（ch 單位）：中日韓全形字視覺寬度約是拉丁字母的兩倍，
+// 直接用字元數當 ch 數會讓中文名稱被裁切，所以全形字元算 2、其餘算 1。
+function estimateWidthCh(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    width += /[　-鿿＀-￯]/.test(ch) ? 2 : 1;
+  }
+  return Math.max(width + 1, 3);
+}
+
 export default function Settings() {
   const {
     categories,
@@ -70,7 +80,7 @@ export default function Settings() {
             >
               <input
                 className="bg-transparent outline-none"
-                style={{ width: `${Math.max(c.name.length, 2)}ch` }}
+                style={{ width: `${estimateWidthCh(c.name)}ch` }}
                 value={c.name}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => renameCategory(c.id, e.target.value)}
