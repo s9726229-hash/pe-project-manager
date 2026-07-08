@@ -8,6 +8,7 @@ import KnowledgeBase from './views/KnowledgeBase';
 import Settings from './views/Settings';
 import { useProjects } from './hooks/useProjects';
 import { useTemplates } from './hooks/useTemplates';
+import { usePrograms } from './hooks/usePrograms';
 
 export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'SETTINGS';
 
@@ -15,13 +16,14 @@ export default function App() {
   const [view, setView] = useState<ViewState>('DASHBOARD');
   const projectsApi = useProjects();
   const templatesApi = useTemplates();
+  const programsApi = usePrograms();
 
   return (
     <div className="flex min-h-screen bg-slate-950">
       <Sidebar currentView={view} onNavigate={setView} />
       <main className="flex-1 p-8">
         {view === 'DASHBOARD' && <Dashboard />}
-        {view === 'PROJECTS' && <Projects projectsApi={projectsApi} templatesApi={templatesApi} />}
+        {view === 'PROJECTS' && <Projects projectsApi={projectsApi} templatesApi={templatesApi} programsApi={programsApi} />}
         {view === 'TASKS' && <Tasks />}
         {view === 'CALENDAR' && <Calendar />}
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase />}

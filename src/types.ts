@@ -3,6 +3,14 @@
 
 export type ProjectStatus = '進行中' | '暫停' | '取消' | '已完成';
 
+// 大專案：純粹分組用的輕量實體，不套範本、不記錄自己的日期。
+// 小專案（Project）可以選填掛在某個 Program 底下，也可以完全不掛（單獨專案）。
+export interface Program {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export interface Project {
   id: string;
   code: string;
@@ -14,6 +22,7 @@ export interface Project {
   owner: string;
   notes: string;
   milestones: Milestone[];
+  programId?: string;
 }
 
 export interface ChecklistItem {

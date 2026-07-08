@@ -10,6 +10,7 @@ export interface NewProjectInput {
   appliedTemplateId: string;
   owner: string;
   milestones: Milestone[];
+  programId?: string;
 }
 
 export function useProjects() {
@@ -30,7 +31,8 @@ export function useProjects() {
       status: '進行中',
       owner: input.owner,
       notes: '',
-      milestones: input.milestones
+      milestones: input.milestones,
+      programId: input.programId
     };
     setProjects((prev) => [...prev, project]);
     return project.id;

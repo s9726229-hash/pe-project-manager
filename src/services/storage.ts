@@ -20,6 +20,7 @@ export function saveToStorage<T>(key: string, value: T): void {
 export const STORAGE_KEYS = {
   templateCategories: 'templateCategories',
   templates: 'templates',
+  programs: 'programs',
   projects: 'projects',
   tasks: 'tasks',
   cases: 'cases',
