@@ -124,7 +124,7 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
               </div>
             )}
 
-            {depth === 0 && (
+            {depth === 0 && !isGroup && (
               <button
                 onClick={() => addSubStep(s)}
                 className="text-xs text-slate-400 hover:text-primary-400 mt-2 flex items-center gap-1"
