@@ -50,38 +50,38 @@ export default function Settings() {
       <h1 className="text-2xl font-semibold mb-2">設定</h1>
       <p className="text-slate-400 mb-6">範本管理——分類、範本、步驟都可以自由新增/編輯，資料存在瀏覽器本機。</p>
 
-      <div className="grid grid-cols-[200px_240px_1fr] gap-4">
-        {/* 分類清單 */}
-        <div>
-          <h2 className="text-sm font-semibold text-slate-400 mb-2">範本分類</h2>
-          <div className="space-y-1">
-            {categories.map((c) => (
-              <div
-                key={c.id}
-                className={`group flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer ${
-                  activeCategoryId === c.id ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-slate-800 text-slate-300'
-                }`}
-                onClick={() => {
-                  setSelectedCategoryId(c.id);
-                  setSelectedTemplateId(null);
+      {/* 分類（橫向） */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-slate-400 mb-2">範本分類</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          {categories.map((c) => (
+            <div
+              key={c.id}
+              className={`group flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full text-sm cursor-pointer border ${
+                activeCategoryId === c.id
+                  ? 'bg-primary-600/20 text-primary-400 border-primary-600/40'
+                  : 'text-slate-300 border-slate-700 hover:bg-slate-800'
+              }`}
+              onClick={() => {
+                setSelectedCategoryId(c.id);
+                setSelectedTemplateId(null);
+              }}
+            >
+              <span>{c.name}</span>
+              <button
+                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`刪除分類「${c.name}」？底下的範本也會一併刪除。`)) deleteCategory(c.id);
                 }}
               >
-                <span>{c.name}</span>
-                <button
-                  className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm(`刪除分類「${c.name}」？底下的範本也會一併刪除。`)) deleteCategory(c.id);
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 flex gap-1">
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center gap-1">
             <input
-              className="flex-1 bg-slate-800 rounded px-2 py-1 text-xs"
+              className="w-32 bg-slate-800 rounded-full px-3 py-1.5 text-xs"
               placeholder="新分類名稱"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
@@ -92,87 +92,90 @@ export default function Settings() {
             </button>
           </div>
         </div>
+      </section>
 
-        {/* 範本清單 */}
-        <div>
-          <h2 className="text-sm font-semibold text-slate-400 mb-2">範本</h2>
-          <div className="space-y-1">
-            {templatesInCategory.map((t) => (
-              <div
-                key={t.id}
-                className={`group flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer ${
-                  selectedTemplateId === t.id ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-slate-800 text-slate-300'
-                }`}
-                onClick={() => setSelectedTemplateId(t.id)}
-              >
-                <span className="flex items-center gap-1">
-                  {t.isDefault && <Star size={12} className="text-amber-400 fill-amber-400" />}
-                  {t.name}
-                </span>
-                <span className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
-                  <button
-                    title="複製"
-                    className="text-slate-500 hover:text-primary-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      duplicateTemplate(t.id);
-                    }}
-                  >
-                    <Copy size={14} />
-                  </button>
-                  <button
-                    title="刪除"
-                    className="text-slate-500 hover:text-red-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTemplate(t.id);
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </span>
-              </div>
-            ))}
-          </div>
+      {/* 範本（橫向） */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-slate-400 mb-2">範本</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          {templatesInCategory.map((t) => (
+            <div
+              key={t.id}
+              className={`group flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full text-sm cursor-pointer border ${
+                selectedTemplateId === t.id
+                  ? 'bg-primary-600/20 text-primary-400 border-primary-600/40'
+                  : 'text-slate-300 border-slate-700 hover:bg-slate-800'
+              }`}
+              onClick={() => setSelectedTemplateId(t.id)}
+            >
+              <span className="flex items-center gap-1">
+                {t.isDefault && <Star size={12} className="text-amber-400 fill-amber-400" />}
+                {t.name}
+              </span>
+              <span className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
+                <button
+                  title="複製"
+                  className="text-slate-500 hover:text-primary-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    duplicateTemplate(t.id);
+                  }}
+                >
+                  <Copy size={13} />
+                </button>
+                <button
+                  title="刪除"
+                  className="text-slate-500 hover:text-red-400"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteTemplate(t.id);
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </span>
+            </div>
+          ))}
           <button
             onClick={handleAddTemplate}
             disabled={!activeCategoryId}
-            className="mt-3 text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1 disabled:opacity-40"
+            className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1 disabled:opacity-40 px-2 py-1.5"
           >
             <Plus size={14} /> 新增範本
           </button>
         </div>
+      </section>
 
-        {/* 範本編輯區 */}
-        <div>
-          {!activeTemplate && <p className="text-slate-500 text-sm">選一份範本來編輯步驟。</p>}
-          {activeTemplate && (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <input
-                  className="bg-slate-800 rounded px-2 py-1 text-lg font-semibold flex-1"
-                  value={activeTemplate.name}
-                  onChange={(e) => renameTemplate(activeTemplate.id, e.target.value)}
-                />
-                <button
-                  onClick={() => setDefaultTemplate(activeTemplate.categoryId, activeTemplate.id)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border ${
-                    activeTemplate.isDefault
-                      ? 'border-amber-400 text-amber-400'
-                      : 'border-slate-700 text-slate-400 hover:border-slate-500'
-                  }`}
-                >
-                  {activeTemplate.isDefault ? '✓ 這是預設範本' : '設為預設範本'}
-                </button>
-              </div>
-              <StepEditor
-                steps={activeTemplate.steps}
-                onChange={(steps) => updateTemplateSteps(activeTemplate.id, steps)}
+      {/* 範本編輯區（滿版寬度） */}
+      <section>
+        <h2 className="text-sm font-semibold text-slate-400 mb-2">步驟編輯</h2>
+        {!activeTemplate && <p className="text-slate-500 text-sm">選一份範本來編輯步驟。</p>}
+        {activeTemplate && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                className="bg-slate-800 rounded px-2 py-1 text-lg font-semibold flex-1 max-w-md"
+                value={activeTemplate.name}
+                onChange={(e) => renameTemplate(activeTemplate.id, e.target.value)}
               />
+              <button
+                onClick={() => setDefaultTemplate(activeTemplate.categoryId, activeTemplate.id)}
+                className={`text-xs px-3 py-1.5 rounded-lg border shrink-0 ${
+                  activeTemplate.isDefault
+                    ? 'border-amber-400 text-amber-400'
+                    : 'border-slate-700 text-slate-400 hover:border-slate-500'
+                }`}
+              >
+                {activeTemplate.isDefault ? '✓ 這是預設範本' : '設為預設範本'}
+              </button>
             </div>
-          )}
-        </div>
-      </div>
+            <StepEditor
+              steps={activeTemplate.steps}
+              onChange={(steps) => updateTemplateSteps(activeTemplate.id, steps)}
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
