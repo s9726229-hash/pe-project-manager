@@ -6,12 +6,13 @@ interface NewProjectModalProps {
   categories: TemplateCategory[];
   templates: Template[];
   programs: Program[];
-  onAddProgram: (code: string, name: string) => string;
+  onAddProgram: (name: string) => string;
   onCancel: () => void;
   onCreate: (input: {
-    code: string;
     name: string;
     productLine: string;
+    grade: string;
+    notes: string;
     startDate: string;
     owner: string;
     appliedTemplateId: string;
@@ -30,29 +31,30 @@ export default function NewProjectModal({ categories, templates, programs, onAdd
   const stageTemplates = templates.filter((t) => t.categoryId === stageCategory?.id);
   const defaultTemplate = stageTemplates.find((t) => t.isDefault) ?? stageTemplates[0];
 
-  const [code, setCode] = useState('');
+  const [programId, setProgramId] = useState('');
+  const [newProgramName, setNewProgramName] = useState('');
   const [name, setName] = useState('');
   const [productLine, setProductLine] = useState('');
+  const [grade, setGrade] = useState('');
+  const [notes, setNotes] = useState('');
   const [startDate, setStartDate] = useState(todayIso());
   const [owner, setOwner] = useState('');
   const [templateId, setTemplateId] = useState(defaultTemplate?.id ?? '');
-  const [programId, setProgramId] = useState('');
-  const [newProgramCode, setNewProgramCode] = useState('');
-  const [newProgramName, setNewProgramName] = useState('');
 
   const creatingProgram = programId === NEW_PROGRAM_VALUE;
-  const canSubmit = code.trim() && name.trim() && startDate && templateId && (!creatingProgram || (newProgramCode.trim() && newProgramName.trim()));
+  const canSubmit = name.trim() && startDate && templateId && (!creatingProgram || newProgramName.trim());
 
   function handleSubmit() {
     if (!canSubmit) return;
     let resolvedProgramId = programId || undefined;
     if (creatingProgram) {
-      resolvedProgramId = onAddProgram(newProgramCode.trim(), newProgramName.trim());
+      resolvedProgramId = onAddProgram(newProgramName.trim());
     }
     onCreate({
-      code: code.trim(),
       name: name.trim(),
       productLine: productLine.trim(),
+      grade: grade.trim(),
+      notes: notes.trim(),
       startDate,
       owner: owner.trim(),
       appliedTemplateId: templateId,
@@ -64,21 +66,60 @@ export default function NewProjectModal({ categories, templates, programs, onAdd
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-4">
         <h2 className="text-lg font-semibold">新增專案</h2>
+        <p className="text-xs text-slate-500 -mt-2">命名參考：大專案名稱 － 小專案名稱 － 產品線 － 產品等級 － 備註（例：E28－M.2 2280－XXXXX－商－DELL）</p>
+
+        <label className="text-xs text-slate-400 space-y-1 block">
+          大專案名稱（選填）
+          <select
+            className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
+            value={programId}
+            onChange={(e) => setProgramId(e.target.value)}
+          >
+            <option value="">不掛（單獨專案）</option>
+            {programs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            <option value={NEW_PROGRAM_VALUE}>＋ 新增大專案...</option>
+          </select>
+        </label>
+
+        {creatingProgram && (
+          <label className="text-xs text-slate-400 space-y-1 block">
+            新大專案名稱
+            <input
+              className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
+              value={newProgramName}
+              onChange={(e) => setNewProgramName(e.target.value)}
+            />
+          </label>
+        )}
+
+        <label className="text-xs text-slate-400 space-y-1 block">
+          小專案名稱
+          <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
 
         <div className="grid grid-cols-2 gap-3">
-          <label className="text-xs text-slate-400 space-y-1">
-            專案代號
-            <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={code} onChange={(e) => setCode(e.target.value)} />
-          </label>
           <label className="text-xs text-slate-400 space-y-1">
             產品線
             <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={productLine} onChange={(e) => setProductLine(e.target.value)} />
           </label>
+          <label className="text-xs text-slate-400 space-y-1">
+            產品等級
+            <input
+              className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
+              placeholder="商規/工規/DC..."
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+            />
+          </label>
         </div>
 
         <label className="text-xs text-slate-400 space-y-1 block">
-          專案名稱
-          <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+          備註
+          <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" placeholder="例：客戶 DELL" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
@@ -117,44 +158,6 @@ export default function NewProjectModal({ categories, templates, programs, onAdd
           <p className="text-xs text-slate-500">
             套用後會依範本自動排出完整里程碑時程，套用完仍可在專案裡自由調整。
           </p>
-        )}
-
-        <label className="text-xs text-slate-400 space-y-1 block">
-          掛在大專案底下（選填）
-          <select
-            className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-            value={programId}
-            onChange={(e) => setProgramId(e.target.value)}
-          >
-            <option value="">不掛（單獨專案）</option>
-            {programs.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} － {p.name}
-              </option>
-            ))}
-            <option value={NEW_PROGRAM_VALUE}>＋ 新增大專案...</option>
-          </select>
-        </label>
-
-        {creatingProgram && (
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-slate-400 space-y-1">
-              大專案代號
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={newProgramCode}
-                onChange={(e) => setNewProgramCode(e.target.value)}
-              />
-            </label>
-            <label className="text-xs text-slate-400 space-y-1">
-              大專案名稱
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={newProgramName}
-                onChange={(e) => setNewProgramName(e.target.value)}
-              />
-            </label>
-          </div>
         )}
 
         <div className="flex justify-end gap-2 pt-2">

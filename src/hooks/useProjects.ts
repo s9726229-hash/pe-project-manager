@@ -3,9 +3,10 @@ import type { Milestone, Project, ProjectStatus } from '../types';
 import { loadFromStorage, newId, saveToStorage, STORAGE_KEYS } from '../services/storage';
 
 export interface NewProjectInput {
-  code: string;
   name: string;
   productLine: string;
+  grade: string;
+  notes?: string;
   startDate: string;
   appliedTemplateId: string;
   owner: string;
@@ -23,14 +24,14 @@ export function useProjects() {
   function addProject(input: NewProjectInput) {
     const project: Project = {
       id: newId(),
-      code: input.code,
       name: input.name,
       productLine: input.productLine,
+      grade: input.grade,
       startDate: input.startDate,
       appliedTemplateId: input.appliedTemplateId,
       status: '進行中',
       owner: input.owner,
-      notes: '',
+      notes: input.notes ?? '',
       milestones: input.milestones,
       programId: input.programId
     };

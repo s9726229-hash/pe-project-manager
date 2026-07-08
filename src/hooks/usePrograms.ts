@@ -9,8 +9,8 @@ export function usePrograms() {
     saveToStorage(STORAGE_KEYS.programs, programs);
   }, [programs]);
 
-  function addProgram(code: string, name: string) {
-    const program: Program = { id: newId(), code, name };
+  function addProgram(name: string) {
+    const program: Program = { id: newId(), name };
     setPrograms((prev) => [...prev, program]);
     return program.id;
   }

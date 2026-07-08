@@ -23,9 +23,10 @@ export default function Projects({ projectsApi, templatesApi, programsApi }: Pro
   const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
   function handleCreate(input: {
-    code: string;
     name: string;
     productLine: string;
+    grade: string;
+    notes: string;
     startDate: string;
     owner: string;
     appliedTemplateId: string;

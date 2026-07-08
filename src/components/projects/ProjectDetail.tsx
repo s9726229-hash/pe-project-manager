@@ -27,12 +27,11 @@ export default function ProjectDetail({ project, onBack, onUpdateMilestones }: P
         <ArrowLeft size={16} /> 返回專案列表
       </button>
 
-      <div className="flex items-baseline gap-3 mb-1">
-        <h1 className="text-2xl font-semibold">{project.name}</h1>
-        <span className="text-sm text-slate-500">{project.code}</span>
-      </div>
+      <h1 className="text-2xl font-semibold mb-1">{project.name}</h1>
       <p className="text-sm text-slate-500 mb-6">
-        {project.productLine || '—'} ・ 啟動日 {project.startDate} ・ 負責人 {project.owner || '—'} ・ {project.status}
+        {project.productLine || '—'}
+        {project.grade ? ` ・ ${project.grade}` : ''} ・ 啟動日 {project.startDate} ・ 負責人 {project.owner || '—'} ・ {project.status}
+        {project.notes ? ` ・ ${project.notes}` : ''}
       </p>
 
       <div className="flex items-center gap-1 border-b border-slate-800 mb-6">

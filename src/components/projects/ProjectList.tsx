@@ -31,8 +31,9 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
     <table className="w-full text-sm">
       <thead className="bg-slate-900 text-slate-400 text-xs">
         <tr>
-          <th className="text-left px-4 py-2">專案代號/名稱</th>
+          <th className="text-left px-4 py-2">小專案名稱</th>
           <th className="text-left px-4 py-2">產品線</th>
+          <th className="text-left px-4 py-2">產品等級</th>
           <th className="text-left px-4 py-2">狀態</th>
           <th className="text-left px-4 py-2">目前階段</th>
           <th className="text-left px-4 py-2">進度%</th>
@@ -41,11 +42,9 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
       <tbody>
         {projects.map((p) => (
           <tr key={p.id} className="border-t border-slate-800 hover:bg-slate-900/60 cursor-pointer" onClick={() => onOpen(p.id)}>
-            <td className="px-4 py-3">
-              <div className="font-medium">{p.name}</div>
-              <div className="text-xs text-slate-500">{p.code}</div>
-            </td>
+            <td className="px-4 py-3 font-medium">{p.name}</td>
             <td className="px-4 py-3 text-slate-400">{p.productLine || '—'}</td>
+            <td className="px-4 py-3 text-slate-400">{p.grade || '—'}</td>
             <td className="px-4 py-3">
               <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[p.status]}`}>{p.status}</span>
             </td>
@@ -83,7 +82,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject }
         {grouped.map(({ program, projects: groupProjects }) => (
           <div key={program.id}>
             <h2 className="text-sm font-semibold text-slate-300 mb-2">
-              {program.code} － {program.name}
+              {program.name}
               <span className="text-slate-500 font-normal ml-2">{groupProjects.length} 個小專案</span>
             </h2>
             <div className="border border-slate-800 rounded-xl overflow-hidden">

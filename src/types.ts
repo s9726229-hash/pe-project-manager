@@ -5,17 +5,17 @@ export type ProjectStatus = '進行中' | '暫停' | '取消' | '已完成';
 
 // 大專案：純粹分組用的輕量實體，不套範本、不記錄自己的日期。
 // 小專案（Project）可以選填掛在某個 Program 底下，也可以完全不掛（單獨專案）。
+// 用名稱識別就夠用，不需要另外的代號欄位。
 export interface Program {
   id: string;
-  code: string;
   name: string;
 }
 
 export interface Project {
   id: string;
-  code: string;
   name: string;
   productLine: string;
+  grade: string; // 產品等級，例如商規/工規/DC，自由文字不限定選項
   startDate: string;
   appliedTemplateId: string;
   status: ProjectStatus;
