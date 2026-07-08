@@ -8,6 +8,7 @@ export default function Settings() {
     categories,
     templates,
     addCategory,
+    renameCategory,
     deleteCategory,
     addTemplate,
     duplicateTemplate,
@@ -20,6 +21,7 @@ export default function Settings() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   const activeCategoryId = selectedCategoryId ?? categories[0]?.id ?? null;
   const templatesInCategory = templates.filter((t) => t.categoryId === activeCategoryId);
@@ -32,11 +34,10 @@ export default function Settings() {
   }
 
   function handleAddTemplate() {
-    if (!activeCategoryId) return;
-    const name = prompt('新範本名稱？');
-    if (!name) return;
-    const id = addTemplate(activeCategoryId, name);
+    if (!activeCategoryId || !newTemplateName.trim()) return;
+    const id = addTemplate(activeCategoryId, newTemplateName.trim());
     setSelectedTemplateId(id);
+    setNewTemplateName('');
   }
 
   function handleDeleteTemplate(id: string) {
@@ -67,7 +68,13 @@ export default function Settings() {
                 setSelectedTemplateId(null);
               }}
             >
-              <span>{c.name}</span>
+              <input
+                className="bg-transparent outline-none"
+                style={{ width: `${Math.max(c.name.length, 2)}ch` }}
+                value={c.name}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => renameCategory(c.id, e.target.value)}
+              />
               <button
                 className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400"
                 onClick={(e) => {
@@ -136,13 +143,23 @@ export default function Settings() {
               </span>
             </div>
           ))}
-          <button
-            onClick={handleAddTemplate}
-            disabled={!activeCategoryId}
-            className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1 disabled:opacity-40 px-2 py-1.5"
-          >
-            <Plus size={14} /> 新增範本
-          </button>
+          <div className="flex items-center gap-1">
+            <input
+              className="w-32 bg-slate-800 rounded-full px-3 py-1.5 text-xs disabled:opacity-40"
+              placeholder="新範本名稱"
+              value={newTemplateName}
+              disabled={!activeCategoryId}
+              onChange={(e) => setNewTemplateName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddTemplate()}
+            />
+            <button
+              onClick={handleAddTemplate}
+              disabled={!activeCategoryId}
+              className="text-primary-400 hover:text-primary-300 p-1 disabled:opacity-40"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
         </div>
       </section>
 

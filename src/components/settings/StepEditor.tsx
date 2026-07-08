@@ -21,6 +21,18 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
     onChange([...steps, { id: newId(), name: '新步驟', groupOrder: steps.length + 1 }]);
   }
 
+  function addGroupStep() {
+    onChange([
+      ...steps,
+      {
+        id: newId(),
+        name: '新群組',
+        groupOrder: steps.length + 1,
+        subSteps: [{ id: newId(), name: '新子步驟', groupOrder: 1 }]
+      }
+    ]);
+  }
+
   function addChecklistItem(step: TemplateStep) {
     const items = [...(step.checklistItems ?? []), ''];
     onChange(updateStepAt(steps, step.id, { checklistItems: items }));
@@ -135,12 +147,22 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
           </div>
         );
       })}
-      <button
-        onClick={addStep}
-        className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1"
-      >
-        <Plus size={14} /> 新增步驟
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={addStep}
+          className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1"
+        >
+          <Plus size={14} /> 新增步驟
+        </button>
+        {depth === 0 && (
+          <button
+            onClick={addGroupStep}
+            className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1"
+          >
+            <Plus size={14} /> 新增群組
+          </button>
+        )}
+      </div>
     </div>
   );
 }
