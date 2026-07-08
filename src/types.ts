@@ -13,6 +13,7 @@ export interface Project {
   status: ProjectStatus;
   owner: string;
   notes: string;
+  milestones: Milestone[];
 }
 
 export interface ChecklistItem {
@@ -25,6 +26,9 @@ export interface Milestone {
   id: string;
   name: string;
   groupOrder: number;
+  // plannedStartDate/plannedDate 只有葉節點（沒有 subMilestones）才有意義，
+  // 由工作日排程演算法計算出來；plannedDate 是這個項目的目標完成日。
+  plannedStartDate?: string;
   plannedDate?: string;
   actualDate?: string;
   owner?: string;

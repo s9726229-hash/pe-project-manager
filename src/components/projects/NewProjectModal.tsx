@@ -1,0 +1,115 @@
+import { useState } from 'react';
+import type { Template, TemplateCategory } from '../../types';
+import { applyTemplateSteps } from '../../services/scheduling';
+
+interface NewProjectModalProps {
+  categories: TemplateCategory[];
+  templates: Template[];
+  onCancel: () => void;
+  onCreate: (input: { code: string; name: string; productLine: string; startDate: string; owner: string; appliedTemplateId: string }) => void;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function NewProjectModal({ categories, templates, onCancel, onCreate }: NewProjectModalProps) {
+  const stageCategory = categories.find((c) => c.name === '專案階段範本') ?? categories[0];
+  const stageTemplates = templates.filter((t) => t.categoryId === stageCategory?.id);
+  const defaultTemplate = stageTemplates.find((t) => t.isDefault) ?? stageTemplates[0];
+
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [productLine, setProductLine] = useState('');
+  const [startDate, setStartDate] = useState(todayIso());
+  const [owner, setOwner] = useState('');
+  const [templateId, setTemplateId] = useState(defaultTemplate?.id ?? '');
+
+  const canSubmit = code.trim() && name.trim() && startDate && templateId;
+
+  function handleSubmit() {
+    if (!canSubmit) return;
+    onCreate({ code: code.trim(), name: name.trim(), productLine: productLine.trim(), startDate, owner: owner.trim(), appliedTemplateId: templateId });
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-4">
+        <h2 className="text-lg font-semibold">新增專案</h2>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-xs text-slate-400 space-y-1">
+            專案代號
+            <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={code} onChange={(e) => setCode(e.target.value)} />
+          </label>
+          <label className="text-xs text-slate-400 space-y-1">
+            產品線
+            <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={productLine} onChange={(e) => setProductLine(e.target.value)} />
+          </label>
+        </div>
+
+        <label className="text-xs text-slate-400 space-y-1 block">
+          專案名稱
+          <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-xs text-slate-400 space-y-1">
+            啟動日
+            <input
+              type="date"
+              className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </label>
+          <label className="text-xs text-slate-400 space-y-1">
+            負責窗口
+            <input className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm" value={owner} onChange={(e) => setOwner(e.target.value)} />
+          </label>
+        </div>
+
+        <label className="text-xs text-slate-400 space-y-1 block">
+          套用範本（專案階段）
+          <select
+            className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
+            {stageTemplates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+                {t.isDefault ? '（預設）' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {templateId && (
+          <p className="text-xs text-slate-500">
+            套用後會依範本自動排出完整里程碑時程，套用完仍可在專案裡自由調整。
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onCancel} className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">
+            取消
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="px-4 py-1.5 text-sm bg-primary-600 hover:bg-primary-500 rounded-lg disabled:opacity-40"
+          >
+            建立專案
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function buildMilestonesForTemplate(templates: Template[], templateId: string, startDate: string) {
+  const template = templates.find((t) => t.id === templateId);
+  if (!template) return [];
+  return applyTemplateSteps(template.steps, startDate);
+}

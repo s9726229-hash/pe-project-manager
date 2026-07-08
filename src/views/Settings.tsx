@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Copy, Plus, Star, Trash2 } from 'lucide-react';
-import { useTemplates } from '../hooks/useTemplates';
+import type { useTemplates } from '../hooks/useTemplates';
 import StepEditor from '../components/settings/StepEditor';
 
 // 粗略估計文字寬度（ch 單位）：中日韓全形字視覺寬度約是拉丁字母的兩倍，
@@ -13,7 +13,11 @@ function estimateWidthCh(text: string): number {
   return Math.max(width + 1, 3);
 }
 
-export default function Settings() {
+interface SettingsProps {
+  templatesApi: ReturnType<typeof useTemplates>;
+}
+
+export default function Settings({ templatesApi }: SettingsProps) {
   const {
     categories,
     templates,
@@ -26,7 +30,7 @@ export default function Settings() {
     renameTemplate,
     setDefaultTemplate,
     updateTemplateSteps
-  } = useTemplates();
+  } = templatesApi;
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
