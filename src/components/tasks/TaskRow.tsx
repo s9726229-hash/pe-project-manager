@@ -5,8 +5,8 @@ import { getEffectiveDueDate, getEffectiveStatus, isParentTask, isTaskUrgent } f
 
 interface TaskRowProps {
   task: Task;
-  project?: Project;
-  showProjectTag: boolean;
+  projects: Project[];
+  showProjectPicker: boolean;
   onChange: (task: Task) => void;
   onPostpone: (id: string, newDate: string) => void;
   onAddSubTask: (parentId: string, title: string) => void;
@@ -20,7 +20,7 @@ const STATUS_COLOR: Record<string, string> = {
   已完成: 'text-emerald-400'
 };
 
-export default function TaskRow({ task, project, showProjectTag, onChange, onPostpone, onAddSubTask, onDelete, depth = 0 }: TaskRowProps) {
+export default function TaskRow({ task, projects, showProjectPicker, onChange, onPostpone, onAddSubTask, onDelete, depth = 0 }: TaskRowProps) {
   const [addingSub, setAddingSub] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState('');
 
@@ -43,70 +43,89 @@ export default function TaskRow({ task, project, showProjectTag, onChange, onPos
 
   return (
     <div className={depth > 0 ? 'ml-6' : ''}>
-      <div className={`flex items-center gap-2 flex-wrap py-2 px-3 rounded-lg ${depth === 0 ? 'bg-slate-900/60 border border-slate-800' : ''}`}>
-        {!isParent ? (
-          <select
-            className={`bg-slate-800 rounded px-2 py-1 text-xs shrink-0 ${STATUS_COLOR[task.status ?? '待辦']}`}
-            value={task.status ?? '待辦'}
-            onChange={(e) => updateField({ status: e.target.value as Task['status'] })}
-          >
-            <option value="待辦">待辦</option>
-            <option value="進行中">進行中</option>
-            <option value="已完成">已完成</option>
-          </select>
-        ) : (
-          <span className={`text-xs px-2 py-1 rounded bg-slate-800 shrink-0 ${STATUS_COLOR[effectiveStatus ?? '待辦']}`}>
-            {effectiveStatus}
-          </span>
-        )}
+      <div className={`flex items-center gap-2 py-2 px-3 rounded-lg ${depth === 0 ? 'bg-slate-900/60 border border-slate-800' : ''}`}>
+        {/* 狀態：葉節點可選，父項目顯示推算出來的唯讀徽章，寬度一致才會對齊 */}
+        <div className="w-20 shrink-0">
+          {!isParent ? (
+            <select
+              className={`w-full bg-slate-800 rounded px-2 py-1 text-xs ${STATUS_COLOR[task.status ?? '待辦']}`}
+              value={task.status ?? '待辦'}
+              onChange={(e) => updateField({ status: e.target.value as Task['status'] })}
+            >
+              <option value="待辦">待辦</option>
+              <option value="進行中">進行中</option>
+              <option value="已完成">已完成</option>
+            </select>
+          ) : (
+            <span className={`block text-center text-xs px-2 py-1 rounded bg-slate-800 ${STATUS_COLOR[effectiveStatus ?? '待辦']}`}>
+              {effectiveStatus}
+            </span>
+          )}
+        </div>
 
-        {urgent && (
-          <span title="急件" className="shrink-0">
-            <Flame size={14} className="text-red-400" />
-          </span>
-        )}
+        <div className="w-4 shrink-0 flex justify-center">
+          {urgent && <Flame size={14} className="text-red-400" />}
+        </div>
 
         <input
-          className={`flex-1 min-w-[8rem] bg-transparent outline-none ${done ? 'line-through text-slate-500' : ''}`}
+          className={`flex-1 min-w-[6rem] bg-transparent outline-none ${done ? 'line-through text-slate-500' : ''}`}
           value={task.title}
           onChange={(e) => updateField({ title: e.target.value })}
         />
 
-        {showProjectTag && project && (
-          <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">{project.name}</span>
-        )}
+        {/* 專案：只有頂層項目能改掛哪個專案 */}
+        <div className="w-32 shrink-0">
+          {showProjectPicker && (
+            <select
+              className="w-full bg-slate-800 rounded px-2 py-1 text-xs text-slate-400"
+              value={task.projectId}
+              onChange={(e) => updateField({ projectId: e.target.value })}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
-        {!isParent && (
-          <>
+        <div className="w-32 shrink-0">
+          {!isParent ? (
             <input
               type="date"
-              className="bg-slate-800 rounded px-2 py-1 text-xs shrink-0"
+              className="w-full bg-slate-800 rounded px-2 py-1 text-xs"
               value={task.dueDate ?? ''}
               onChange={(e) => onPostpone(task.id, e.target.value)}
             />
+          ) : (
+            <span className="block text-xs text-slate-500 px-2 py-1">{effectiveDueDate ?? '—'}</span>
+          )}
+        </div>
+
+        <div className="w-14 shrink-0">
+          {!isParent && (
             <button
               onClick={() => updateField({ urgent: !task.urgent })}
-              className={`text-xs px-2 py-1 rounded shrink-0 ${urgent ? 'bg-red-400/10 text-red-400' : 'bg-slate-800 text-slate-500'}`}
-              title="切換急件"
+              className={`w-full text-xs px-2 py-1 rounded ${urgent ? 'bg-red-400/10 text-red-400' : 'bg-slate-800 text-slate-500'}`}
             >
               急件
             </button>
-          </>
-        )}
-        {isParent && effectiveDueDate && <span className="text-xs text-slate-500 shrink-0">{effectiveDueDate}</span>}
+          )}
+        </div>
 
-        {depth === 0 && (
-          <button
-            onClick={() => setAddingSub((v) => !v)}
-            className="text-slate-500 hover:text-primary-400 p-1 shrink-0"
-            title="新增子任務"
-          >
-            <Plus size={14} />
+        <div className="w-8 shrink-0 flex justify-center">
+          {depth === 0 && (
+            <button onClick={() => setAddingSub((v) => !v)} className="text-slate-500 hover:text-primary-400 p-1" title="新增子任務">
+              <Plus size={14} />
+            </button>
+          )}
+        </div>
+        <div className="w-8 shrink-0 flex justify-center">
+          <button onClick={() => onDelete(task.id)} className="text-slate-500 hover:text-red-400 p-1" title="刪除">
+            <Trash2 size={14} />
           </button>
-        )}
-        <button onClick={() => onDelete(task.id)} className="text-slate-500 hover:text-red-400 p-1 shrink-0" title="刪除">
-          <Trash2 size={14} />
-        </button>
+        </div>
       </div>
 
       {addingSub && (
@@ -131,8 +150,8 @@ export default function TaskRow({ task, project, showProjectTag, onChange, onPos
             <TaskRow
               key={sub.id}
               task={sub}
-              project={project}
-              showProjectTag={false}
+              projects={projects}
+              showProjectPicker={false}
               depth={depth + 1}
               onPostpone={onPostpone}
               onAddSubTask={onAddSubTask}

@@ -20,20 +20,19 @@ export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
   const [mode, setMode] = useState<ViewMode>('date');
   const [showCompleted, setShowCompleted] = useState(false);
 
-  const projectById = new Map(projects.map((p) => [p.id, p]));
   const visibleTasks = showCompleted ? tasks : tasks.filter((t) => getEffectiveStatus(t) !== '已完成');
 
   function updateTopLevelTask(updated: Task) {
     updateTask(updated.id, updated);
   }
 
-  function renderRow(t: Task, showProjectTag: boolean) {
+  function renderRow(t: Task, showProjectPicker: boolean) {
     return (
       <TaskRow
         key={t.id}
         task={t}
-        project={projectById.get(t.projectId)}
-        showProjectTag={showProjectTag}
+        projects={projects}
+        showProjectPicker={showProjectPicker}
         onChange={updateTopLevelTask}
         onPostpone={postponeTask}
         onAddSubTask={addSubTask}
@@ -76,7 +75,7 @@ export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
         </div>
       </div>
 
-      <NewTaskForm projects={projects} onCreate={addTask} />
+      <NewTaskForm onCreate={addTask} />
 
       {visibleTasks.length === 0 && <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>}
 
