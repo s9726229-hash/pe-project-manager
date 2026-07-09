@@ -39,6 +39,8 @@ export interface Milestone {
   // 由工作日排程演算法計算出來；plannedDate 是這個項目的目標完成日。
   plannedStartDate?: string;
   plannedDate?: string;
+  // 手動改結束時間時，會反推存成這個葉節點的工期，讓整條時程可以重新往下順推。
+  durationDays?: number;
   actualDate?: string;
   owner?: string;
   status?: '待辦' | '進行中' | '已完成';

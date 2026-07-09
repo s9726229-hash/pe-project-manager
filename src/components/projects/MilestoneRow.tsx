@@ -4,6 +4,7 @@ import { getMilestoneDateRange, getMilestoneTodayStatus, isGroupMilestone } from
 interface MilestoneRowProps {
   milestone: Milestone;
   onChange: (milestone: Milestone) => void;
+  onEndDateChange: (leafId: string, newValue: string) => void;
   depth?: number;
 }
 
@@ -21,7 +22,7 @@ const STATUS_LABEL: Record<string, string> = {
   done: '已完成'
 };
 
-export default function MilestoneRow({ milestone, onChange, depth = 0 }: MilestoneRowProps) {
+export default function MilestoneRow({ milestone, onChange, onEndDateChange, depth = 0 }: MilestoneRowProps) {
   const isGroup = isGroupMilestone(milestone);
   const range = getMilestoneDateRange(milestone);
   const todayStatus = getMilestoneTodayStatus(milestone);
@@ -64,7 +65,8 @@ export default function MilestoneRow({ milestone, onChange, depth = 0 }: Milesto
                 type="date"
                 className="bg-slate-800 rounded px-2 py-1 text-xs"
                 value={milestone.plannedDate ?? ''}
-                onChange={(e) => updateField({ plannedDate: e.target.value })}
+                onChange={(e) => onEndDateChange(milestone.id, e.target.value)}
+                title="改結束時間會反推工期，並讓後面所有項目跟著順延/提前"
               />
             </label>
             <select
@@ -108,6 +110,7 @@ export default function MilestoneRow({ milestone, onChange, depth = 0 }: Milesto
               key={sub.id}
               milestone={sub}
               depth={depth + 1}
+              onEndDateChange={onEndDateChange}
               onChange={(updated) => {
                 const subMilestones = milestone.subMilestones!.map((s) => (s.id === updated.id ? updated : s));
                 onChange({ ...milestone, subMilestones });

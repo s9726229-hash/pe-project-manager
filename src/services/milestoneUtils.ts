@@ -76,3 +76,16 @@ export function getNextMilestoneDate(milestones: Milestone[]): string | undefine
   if (leaves.length === 0) return undefined;
   return leaves.map((l) => l.plannedDate!).reduce((a, b) => (a < b ? a : b));
 }
+
+// 遞迴找到指定 id 的節點（大類或葉節點皆可），用 updater 算出新版本後換掉，其餘結構不變。
+export function updateMilestoneById(milestones: Milestone[], id: string, updater: (m: Milestone) => Milestone): Milestone[] {
+  return milestones.map((m) => {
+    if (m.id === id) return updater(m);
+    if (m.subMilestones) return { ...m, subMilestones: updateMilestoneById(m.subMilestones, id, updater) };
+    return m;
+  });
+}
+
+export function isProjectFullyDone(milestones: Milestone[]): boolean {
+  return milestones.length > 0 && milestones.every(isMilestoneDone);
+}

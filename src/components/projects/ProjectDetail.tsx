@@ -49,7 +49,11 @@ export default function ProjectDetail({ project, onBack, onUpdateMilestones }: P
       </div>
 
       {tab === 'SCHEDULE' && (
-        <ScheduleTab milestones={project.milestones} onChange={(milestones) => onUpdateMilestones(project.id, milestones)} />
+        <ScheduleTab
+          milestones={project.milestones}
+          projectStartDate={project.startDate}
+          onChange={(milestones) => onUpdateMilestones(project.id, milestones)}
+        />
       )}
       {tab === 'NOTES' && <p className="text-slate-500 text-sm">備忘事項功能將在階段 5 實作。</p>}
       {tab === 'CASES' && <p className="text-slate-500 text-sm">問題/ECN 案件功能將在階段 4 實作。</p>}

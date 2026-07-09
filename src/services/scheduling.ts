@@ -1,5 +1,6 @@
 import type { ChecklistItem, Milestone, TemplateStep } from '../types';
 import { newId } from './storage';
+import { updateMilestoneById } from './milestoneUtils';
 
 // 只跳過週六日，不排除國定假日（已跟使用者確認過）。
 export function addWorkingDays(start: Date, days: number): Date {
@@ -12,6 +13,21 @@ export function addWorkingDays(start: Date, days: number): Date {
     if (day !== 0 && day !== 6) remaining--;
   }
   return d;
+}
+
+// addWorkingDays 的反運算：兩個日期之間間隔幾個工作天（跳過週六日）。
+export function businessDaysBetween(startStr: string, endStr: string): number {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (end <= start) return 0;
+  let count = 0;
+  const d = new Date(start);
+  while (d < end) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+  return count;
 }
 
 export function toDateOnlyString(d: Date): string {
@@ -57,6 +73,7 @@ function scheduleSteps(steps: TemplateStep[], start: Date): ScheduleResult {
           groupOrder: step.groupOrder,
           plannedStartDate: toDateOnlyString(cursor),
           plannedDate: toDateOnlyString(end),
+          durationDays: duration,
           status: '待辦',
           checklistItems: toChecklist(step.checklistItems)
         });
@@ -74,4 +91,63 @@ function scheduleSteps(steps: TemplateStep[], start: Date): ScheduleResult {
 export function applyTemplateSteps(steps: TemplateStep[], startDate: string): Milestone[] {
   const { milestones } = scheduleSteps(steps, new Date(startDate));
   return milestones;
+}
+
+interface MilestoneScheduleResult {
+  milestones: Milestone[];
+  endDate: Date;
+}
+
+// 跟 scheduleSteps 邏輯一樣，但輸入輸出都是 Milestone（不是 TemplateStep）——
+// 用來在使用者手動調整某個項目的工期後，把後面所有項目的時間重新往下順推。
+// 只重算日期，名稱/狀態/負責人/checklist 等其他欄位原封不動保留。
+function rescheduleMilestoneList(milestones: Milestone[], start: Date): MilestoneScheduleResult {
+  const groupOrders = [...new Set(milestones.map((m) => m.groupOrder))].sort((a, b) => a - b);
+  let cursor = new Date(start);
+  const byId = new Map<string, Milestone>();
+
+  for (const g of groupOrders) {
+    const groupMilestones = milestones.filter((m) => m.groupOrder === g);
+    let groupEnd = new Date(cursor);
+
+    for (const m of groupMilestones) {
+      if (m.subMilestones && m.subMilestones.length > 0) {
+        const sub = rescheduleMilestoneList(m.subMilestones, cursor);
+        byId.set(m.id, { ...m, subMilestones: sub.milestones });
+        if (sub.endDate > groupEnd) groupEnd = sub.endDate;
+      } else {
+        const duration = m.durationDays ?? 0;
+        const end = addWorkingDays(cursor, duration);
+        byId.set(m.id, {
+          ...m,
+          plannedStartDate: toDateOnlyString(cursor),
+          plannedDate: toDateOnlyString(end)
+        });
+        if (end > groupEnd) groupEnd = end;
+      }
+    }
+    cursor = groupEnd;
+  }
+
+  const result = milestones.map((m) => byId.get(m.id)!);
+  return { milestones: result, endDate: cursor };
+}
+
+export function rescheduleFromStart(milestones: Milestone[], projectStartDate: string): Milestone[] {
+  return rescheduleMilestoneList(milestones, new Date(projectStartDate)).milestones;
+}
+
+// 使用者手動改某個葉節點的結束時間：反推出新工期，存回那個節點，
+// 然後從專案啟動日整條重新排程，讓後面所有項目跟著順延/提前。
+export function rescheduleAfterEndDateEdit(
+  milestones: Milestone[],
+  leafId: string,
+  newEndDate: string,
+  projectStartDate: string
+): Milestone[] {
+  const updated = updateMilestoneById(milestones, leafId, (m) => {
+    const duration = businessDaysBetween(m.plannedStartDate ?? projectStartDate, newEndDate);
+    return { ...m, plannedDate: newEndDate, durationDays: duration };
+  });
+  return rescheduleFromStart(updated, projectStartDate);
 }
