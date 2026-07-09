@@ -3,6 +3,25 @@ import type { Milestone, Project, ProjectStatus } from '../types';
 import { loadFromStorage, newId, saveToStorage, STORAGE_KEYS } from '../services/storage';
 import { isProjectFullyDone } from '../services/milestoneUtils';
 
+// 固定 id 的虛擬專案，讓沒有對應真實 NPI 專案的雜項待辦事項有地方掛。
+// 不算「真的」專案，Project 列表頁會把它濾掉，但 Task 建立時的專案選單看得到。
+export const DEFAULT_PROJECT_ID = 'default-misc-project';
+
+function buildDefaultProject(): Project {
+  return {
+    id: DEFAULT_PROJECT_ID,
+    name: '日常行政/雜項',
+    productLine: '',
+    grade: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    appliedTemplateId: '',
+    status: '進行中',
+    owner: '',
+    notes: '',
+    milestones: []
+  };
+}
+
 export interface NewProjectInput {
   name: string;
   productLine: string;
@@ -21,6 +40,12 @@ export function useProjects() {
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.projects, projects);
   }, [projects]);
+
+  // 確保虛擬的「日常行政/雜項」專案一定存在，不管其他真實專案有沒有建過。
+  useEffect(() => {
+    setProjects((prev) => (prev.some((p) => p.id === DEFAULT_PROJECT_ID) ? prev : [buildDefaultProject(), ...prev]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function addProject(input: NewProjectInput) {
     const project: Project = {

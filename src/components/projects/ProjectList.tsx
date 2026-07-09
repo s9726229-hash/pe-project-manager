@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { Program, Project } from '../../types';
 import { computeProgressPercent, getCurrentStage, isGroupMilestone } from '../../services/milestoneUtils';
+import { DEFAULT_PROJECT_ID } from '../../hooks/useProjects';
 
 interface ProjectListProps {
   projects: Project[];
@@ -58,11 +59,13 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
 }
 
 export default function ProjectList({ projects, programs, onOpen, onNewProject }: ProjectListProps) {
+  // 虛擬的「日常行政/雜項」專案不是真的 NPI 專案，這頁不列出來（Task 建立時的專案選單才看得到）。
+  const realProjects = projects.filter((p) => p.id !== DEFAULT_PROJECT_ID);
   const programIds = new Set(programs.map((p) => p.id));
   const grouped = programs
-    .map((program) => ({ program, projects: projects.filter((p) => p.programId === program.id) }))
+    .map((program) => ({ program, projects: realProjects.filter((p) => p.programId === program.id) }))
     .filter((g) => g.projects.length > 0);
-  const ungrouped = projects.filter((p) => !p.programId || !programIds.has(p.programId));
+  const ungrouped = realProjects.filter((p) => !p.programId || !programIds.has(p.programId));
 
   return (
     <div>
@@ -76,7 +79,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject }
         </button>
       </div>
 
-      {projects.length === 0 && <p className="text-slate-500 text-sm">還沒有專案，點右上角新增一個吧。</p>}
+      {realProjects.length === 0 && <p className="text-slate-500 text-sm">還沒有專案，點右上角新增一個吧。</p>}
 
       <div className="space-y-6">
         {grouped.map(({ program, projects: groupProjects }) => (
