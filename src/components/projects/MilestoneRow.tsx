@@ -1,10 +1,14 @@
+import { Plus, Trash2, X } from 'lucide-react';
 import type { Milestone } from '../../types';
 import { getMilestoneDateRange, getMilestoneTodayStatus, isGroupMilestone } from '../../services/milestoneUtils';
+import { newId } from '../../services/storage';
 
 interface MilestoneRowProps {
   milestone: Milestone;
   onChange: (milestone: Milestone) => void;
   onEndDateChange: (leafId: string, newValue: string) => void;
+  onAddSubItem: (parentId: string) => void;
+  onDelete: (id: string) => void;
   depth?: number;
 }
 
@@ -22,13 +26,28 @@ const STATUS_LABEL: Record<string, string> = {
   done: '已完成'
 };
 
-export default function MilestoneRow({ milestone, onChange, onEndDateChange, depth = 0 }: MilestoneRowProps) {
+export default function MilestoneRow({ milestone, onChange, onEndDateChange, onAddSubItem, onDelete, depth = 0 }: MilestoneRowProps) {
   const isGroup = isGroupMilestone(milestone);
   const range = getMilestoneDateRange(milestone);
   const todayStatus = getMilestoneTodayStatus(milestone);
 
   function toggleChecklistItem(itemId: string) {
     const checklistItems = (milestone.checklistItems ?? []).map((c) => (c.id === itemId ? { ...c, done: !c.done } : c));
+    onChange({ ...milestone, checklistItems });
+  }
+
+  function updateChecklistLabel(itemId: string, label: string) {
+    const checklistItems = (milestone.checklistItems ?? []).map((c) => (c.id === itemId ? { ...c, label } : c));
+    onChange({ ...milestone, checklistItems });
+  }
+
+  function removeChecklistItem(itemId: string) {
+    const checklistItems = (milestone.checklistItems ?? []).filter((c) => c.id !== itemId);
+    onChange({ ...milestone, checklistItems });
+  }
+
+  function addChecklistItem() {
+    const checklistItems = [...(milestone.checklistItems ?? []), { id: newId(), label: '', done: false }];
     onChange({ ...milestone, checklistItems });
   }
 
@@ -90,16 +109,35 @@ export default function MilestoneRow({ milestone, onChange, onEndDateChange, dep
             {range.start ?? '—'} ~ {range.end ?? '—'}
           </span>
         )}
+
+        <button
+          onClick={() => onDelete(milestone.id)}
+          className="text-slate-500 hover:text-red-400 p-1 shrink-0"
+          title="刪除這個項目"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
 
-      {!isGroup && milestone.checklistItems && milestone.checklistItems.length > 0 && (
+      {!isGroup && (
         <div className="ml-16 mt-1 mb-2 space-y-1">
-          {milestone.checklistItems.map((item) => (
-            <label key={item.id} className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+          {(milestone.checklistItems ?? []).map((item) => (
+            <div key={item.id} className="flex items-center gap-2 text-xs text-slate-400">
               <input type="checkbox" checked={item.done} onChange={() => toggleChecklistItem(item.id)} />
-              <span className={item.done ? 'line-through text-slate-600' : ''}>{item.label}</span>
-            </label>
+              <input
+                className={`flex-1 bg-slate-800 rounded px-2 py-1 ${item.done ? 'line-through text-slate-600' : ''}`}
+                value={item.label}
+                onChange={(e) => updateChecklistLabel(item.id, e.target.value)}
+                placeholder="checklist 項目"
+              />
+              <button onClick={() => removeChecklistItem(item.id)} className="text-slate-500 hover:text-red-400">
+                <X size={13} />
+              </button>
+            </div>
           ))}
+          <button onClick={addChecklistItem} className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1">
+            <Plus size={12} /> 新增 checklist 項目
+          </button>
         </div>
       )}
 
@@ -111,13 +149,30 @@ export default function MilestoneRow({ milestone, onChange, onEndDateChange, dep
               milestone={sub}
               depth={depth + 1}
               onEndDateChange={onEndDateChange}
+              onAddSubItem={onAddSubItem}
+              onDelete={onDelete}
               onChange={(updated) => {
                 const subMilestones = milestone.subMilestones!.map((s) => (s.id === updated.id ? updated : s));
                 onChange({ ...milestone, subMilestones });
               }}
             />
           ))}
+          <button
+            onClick={() => onAddSubItem(milestone.id)}
+            className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 ml-6"
+          >
+            <Plus size={12} /> 新增子項目
+          </button>
         </div>
+      )}
+
+      {!isGroup && depth === 0 && (
+        <button
+          onClick={() => onAddSubItem(milestone.id)}
+          className="text-xs text-slate-400 hover:text-primary-400 mt-1 flex items-center gap-1"
+        >
+          <Plus size={12} /> 新增子項目
+        </button>
       )}
     </div>
   );

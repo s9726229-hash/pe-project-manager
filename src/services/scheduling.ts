@@ -151,3 +151,12 @@ export function rescheduleAfterEndDateEdit(
   });
   return rescheduleFromStart(updated, projectStartDate);
 }
+
+// 專案套完範本後，臨時新增的葉節點/群組——預設工期 1 天，實際日期由後續 reschedule 算出來。
+export function makeNewLeafMilestone(name: string, groupOrder: number): Milestone {
+  return { id: newId(), name, groupOrder, durationDays: 1, status: '待辦' };
+}
+
+export function makeNewGroupMilestone(name: string, groupOrder: number): Milestone {
+  return { id: newId(), name, groupOrder, subMilestones: [makeNewLeafMilestone('新子項目', 1)] };
+}

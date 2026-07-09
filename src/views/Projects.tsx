@@ -13,7 +13,7 @@ interface ProjectsProps {
 }
 
 export default function Projects({ projectsApi, templatesApi, programsApi }: ProjectsProps) {
-  const { projects, addProject, updateMilestones } = projectsApi;
+  const { projects, addProject, updateProject, updateMilestones } = projectsApi;
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
 
@@ -42,7 +42,10 @@ export default function Projects({ projectsApi, templatesApi, programsApi }: Pro
     return (
       <ProjectDetail
         project={selectedProject}
+        programs={programs}
+        onAddProgram={addProgram}
         onBack={() => setSelectedProjectId(null)}
+        onUpdateProject={updateProject}
         onUpdateMilestones={updateMilestones}
       />
     );

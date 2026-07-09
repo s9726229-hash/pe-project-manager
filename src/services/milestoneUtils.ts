@@ -89,3 +89,45 @@ export function updateMilestoneById(milestones: Milestone[], id: string, updater
 export function isProjectFullyDone(milestones: Milestone[]): boolean {
   return milestones.length > 0 && milestones.every(isMilestoneDone);
 }
+
+export function findMilestoneById(milestones: Milestone[], id: string): Milestone | undefined {
+  for (const m of milestones) {
+    if (m.id === id) return m;
+    if (m.subMilestones) {
+      const found = findMilestoneById(m.subMilestones, id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+export function nextGroupOrder(siblings: Milestone[]): number {
+  return siblings.length === 0 ? 1 : Math.max(...siblings.map((s) => s.groupOrder)) + 1;
+}
+
+// 從樹狀結構任何位置移除指定 id 的節點。
+export function removeMilestoneById(milestones: Milestone[], id: string): Milestone[] {
+  return milestones
+    .filter((m) => m.id !== id)
+    .map((m) => (m.subMilestones ? { ...m, subMilestones: removeMilestoneById(m.subMilestones, id) } : m));
+}
+
+// 在指定 parentId 底下加一個新子項目；如果該節點原本是葉節點（有自己的日期/checklist/工期），
+// 依「大類不記錄自己資料」規則，轉成群組時要清掉這些欄位。
+export function addSubMilestone(milestones: Milestone[], parentId: string, newLeaf: Milestone): Milestone[] {
+  return milestones.map((m) => {
+    if (m.id === parentId) {
+      const subMilestones = [...(m.subMilestones ?? []), newLeaf];
+      return {
+        ...m,
+        subMilestones,
+        plannedStartDate: undefined,
+        plannedDate: undefined,
+        durationDays: undefined,
+        checklistItems: undefined
+      };
+    }
+    if (m.subMilestones) return { ...m, subMilestones: addSubMilestone(m.subMilestones, parentId, newLeaf) };
+    return m;
+  });
+}

@@ -1,6 +1,13 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import type { Milestone } from '../../types';
-import { rescheduleAfterEndDateEdit } from '../../services/scheduling';
+import {
+  makeNewGroupMilestone,
+  makeNewLeafMilestone,
+  rescheduleAfterEndDateEdit,
+  rescheduleFromStart
+} from '../../services/scheduling';
+import { addSubMilestone, findMilestoneById, nextGroupOrder, removeMilestoneById } from '../../services/milestoneUtils';
 import MilestoneRow from './MilestoneRow';
 import GanttView from './GanttView';
 
@@ -22,6 +29,27 @@ export default function ScheduleTab({ milestones, projectStartDate, onChange }: 
     onChange(rescheduleAfterEndDateEdit(milestones, leafId, newValue, projectStartDate));
   }
 
+  function handleAddSubItem(parentId: string) {
+    const parent = findMilestoneById(milestones, parentId);
+    const order = nextGroupOrder(parent?.subMilestones ?? []);
+    const updated = addSubMilestone(milestones, parentId, makeNewLeafMilestone('新子項目', order));
+    onChange(rescheduleFromStart(updated, projectStartDate));
+  }
+
+  function handleDelete(id: string) {
+    onChange(rescheduleFromStart(removeMilestoneById(milestones, id), projectStartDate));
+  }
+
+  function handleAddTopLevelLeaf() {
+    const updated = [...milestones, makeNewLeafMilestone('新項目', nextGroupOrder(milestones))];
+    onChange(rescheduleFromStart(updated, projectStartDate));
+  }
+
+  function handleAddTopLevelGroup() {
+    const updated = [...milestones, makeNewGroupMilestone('新群組', nextGroupOrder(milestones))];
+    onChange(rescheduleFromStart(updated, projectStartDate));
+  }
+
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
@@ -40,10 +68,27 @@ export default function ScheduleTab({ milestones, projectStartDate, onChange }: 
       </div>
 
       {mode === 'table' && (
-        <div className="space-y-2">
-          {milestones.map((m) => (
-            <MilestoneRow key={m.id} milestone={m} onChange={updateMilestone} onEndDateChange={handleEndDateChange} />
-          ))}
+        <div>
+          <div className="space-y-2 mb-3">
+            {milestones.map((m) => (
+              <MilestoneRow
+                key={m.id}
+                milestone={m}
+                onChange={updateMilestone}
+                onEndDateChange={handleEndDateChange}
+                onAddSubItem={handleAddSubItem}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={handleAddTopLevelLeaf} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
+              <Plus size={14} /> 新增項目
+            </button>
+            <button onClick={handleAddTopLevelGroup} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
+              <Plus size={14} /> 新增群組
+            </button>
+          </div>
         </div>
       )}
 

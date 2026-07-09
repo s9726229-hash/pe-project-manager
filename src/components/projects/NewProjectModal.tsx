@@ -27,9 +27,10 @@ function todayIso(): string {
 }
 
 export default function NewProjectModal({ categories, templates, programs, onAddProgram, onCancel, onCreate }: NewProjectModalProps) {
-  const stageCategory = categories.find((c) => c.name === '專案階段範本') ?? categories[0];
-  const stageTemplates = templates.filter((t) => t.categoryId === stageCategory?.id);
-  const defaultTemplate = stageTemplates.find((t) => t.isDefault) ?? stageTemplates[0];
+  // 範本不限分類，各種範本都能選——只是預設優先選「專案階段範本」分類底下的預設範本，比較符合多數情況。
+  const stageCategory = categories.find((c) => c.name === '專案階段範本');
+  const defaultTemplate =
+    templates.find((t) => t.categoryId === stageCategory?.id && t.isDefault) ?? templates[0];
 
   const [programId, setProgramId] = useState('');
   const [newProgramName, setNewProgramName] = useState('');
@@ -139,18 +140,26 @@ export default function NewProjectModal({ categories, templates, programs, onAdd
         </div>
 
         <label className="text-xs text-slate-400 space-y-1 block">
-          套用範本（專案階段）
+          套用範本
           <select
             className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
           >
-            {stageTemplates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.isDefault ? '（預設）' : ''}
-              </option>
-            ))}
+            {categories.map((c) => {
+              const inCategory = templates.filter((t) => t.categoryId === c.id);
+              if (inCategory.length === 0) return null;
+              return (
+                <optgroup key={c.id} label={c.name}>
+                  {inCategory.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.isDefault ? '（預設）' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
         </label>
 
