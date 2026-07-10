@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import type { Program, Project } from '../../types';
+import type { Case, Program, Project, Template, TemplateCategory } from '../../types';
 import ScheduleTab from './ScheduleTab';
+import CaseList from '../cases/CaseList';
+import CaseDetail from '../cases/CaseDetail';
+import NewCaseModal from '../cases/NewCaseModal';
 
 interface ProjectDetailProps {
   project: Project;
@@ -10,6 +13,12 @@ interface ProjectDetailProps {
   onBack: () => void;
   onUpdateProject: (id: string, patch: Partial<Project>) => void;
   onUpdateMilestones: (projectId: string, milestones: Project['milestones']) => void;
+  cases: Case[];
+  templateCategories: TemplateCategory[];
+  templates: Template[];
+  onAddCase: (input: { projectId: string; name: string; openDate: string; partNumber?: string; notes?: string; template: Template }) => string;
+  onUpdateCase: (id: string, patch: Partial<Case>) => void;
+  onDeleteCase: (id: string) => void;
 }
 
 type Tab = 'SCHEDULE' | 'NOTES' | 'CASES' | 'DOCS';
@@ -23,10 +32,28 @@ const TABS: { id: Tab; label: string }[] = [
 
 const NEW_PROGRAM_VALUE = '__new__';
 
-export default function ProjectDetail({ project, programs, onAddProgram, onBack, onUpdateProject, onUpdateMilestones }: ProjectDetailProps) {
+export default function ProjectDetail({
+  project,
+  programs,
+  onAddProgram,
+  onBack,
+  onUpdateProject,
+  onUpdateMilestones,
+  cases,
+  templateCategories,
+  templates,
+  onAddCase,
+  onUpdateCase,
+  onDeleteCase
+}: ProjectDetailProps) {
   const [tab, setTab] = useState<Tab>('SCHEDULE');
   const [creatingProgram, setCreatingProgram] = useState(false);
   const [newProgramName, setNewProgramName] = useState('');
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [showNewCase, setShowNewCase] = useState(false);
+
+  const projectCases = cases.filter((c) => c.projectId === project.id);
+  const selectedCase = projectCases.find((c) => c.id === selectedCaseId) ?? null;
 
   function field(patch: Partial<Project>) {
     onUpdateProject(project.id, patch);
@@ -161,7 +188,28 @@ export default function ProjectDetail({ project, programs, onAddProgram, onBack,
         />
       )}
       {tab === 'NOTES' && <p className="text-slate-500 text-sm">備忘事項功能將在階段 5 實作。</p>}
-      {tab === 'CASES' && <p className="text-slate-500 text-sm">問題/ECN 案件功能將在階段 4 實作。</p>}
+
+      {tab === 'CASES' &&
+        (selectedCase ? (
+          <CaseDetail caseItem={selectedCase} onBack={() => setSelectedCaseId(null)} onUpdate={onUpdateCase} onDelete={onDeleteCase} />
+        ) : (
+          <>
+            <CaseList cases={projectCases} onOpen={setSelectedCaseId} onNewCase={() => setShowNewCase(true)} />
+            {showNewCase && (
+              <NewCaseModal
+                categories={templateCategories}
+                templates={templates}
+                onCancel={() => setShowNewCase(false)}
+                onCreate={(input) => {
+                  const id = onAddCase({ ...input, projectId: project.id });
+                  setShowNewCase(false);
+                  setSelectedCaseId(id);
+                }}
+              />
+            )}
+          </>
+        ))}
+
       {tab === 'DOCS' && <p className="text-slate-500 text-sm">文件/會議記錄功能將在階段 5 實作。</p>}
     </div>
   );

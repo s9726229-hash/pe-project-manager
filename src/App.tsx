@@ -10,6 +10,7 @@ import { useProjects } from './hooks/useProjects';
 import { useTemplates } from './hooks/useTemplates';
 import { usePrograms } from './hooks/usePrograms';
 import { useTasks } from './hooks/useTasks';
+import { useCases } from './hooks/useCases';
 
 export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'SETTINGS';
 
@@ -19,13 +20,16 @@ export default function App() {
   const templatesApi = useTemplates();
   const programsApi = usePrograms();
   const tasksApi = useTasks();
+  const casesApi = useCases();
 
   return (
     <div className="flex min-h-screen bg-slate-950">
       <Sidebar currentView={view} onNavigate={setView} />
       <main className="flex-1 p-8">
-        {view === 'DASHBOARD' && <Dashboard tasksApi={tasksApi} projectsApi={projectsApi} />}
-        {view === 'PROJECTS' && <Projects projectsApi={projectsApi} templatesApi={templatesApi} programsApi={programsApi} />}
+        {view === 'DASHBOARD' && <Dashboard tasksApi={tasksApi} projectsApi={projectsApi} casesApi={casesApi} />}
+        {view === 'PROJECTS' && (
+          <Projects projectsApi={projectsApi} templatesApi={templatesApi} programsApi={programsApi} casesApi={casesApi} />
+        )}
         {view === 'TASKS' && <Tasks tasksApi={tasksApi} projectsApi={projectsApi} />}
         {view === 'CALENDAR' && <Calendar />}
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase />}

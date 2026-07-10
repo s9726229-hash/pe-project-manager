@@ -83,10 +83,14 @@ export interface Note {
   updatedAt: string;
 }
 
-export type CaseStepStatus = 'pending' | 'in-progress' | 'done';
+export type CaseStepStatus = '待辦' | '進行中' | '已完成';
 
-export interface CaseStepStatusEntry {
-  stepId: string;
+// Case 套範本後拿到自己獨立的一份步驟拷貝（不是回頭參照 Template），
+// 套用完仍可自由新增/刪除步驟，範本之後被改掉也不會影響已經開的案件。
+export interface CaseStep {
+  id: string;
+  name: string;
+  groupOrder: number;
   status: CaseStepStatus;
   completedDate?: string;
   owner?: string;
@@ -96,9 +100,12 @@ export interface CaseStepStatusEntry {
 export interface Case {
   id: string;
   projectId: string;
-  templateId: string;
   name: string;
-  stepStatuses: CaseStepStatusEntry[];
+  caseTypeLabel: string; // 套用當下的範本名稱，純顯示用（例如「ECN」「替代料」）
+  openDate: string;
+  partNumber?: string;
+  notes?: string;
+  steps: CaseStep[];
 }
 
 export interface TemplateCategory {

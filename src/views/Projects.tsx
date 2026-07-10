@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { useProjects } from '../hooks/useProjects';
 import type { useTemplates } from '../hooks/useTemplates';
 import type { usePrograms } from '../hooks/usePrograms';
+import type { useCases } from '../hooks/useCases';
 import ProjectList from '../components/projects/ProjectList';
 import ProjectDetail from '../components/projects/ProjectDetail';
 import NewProjectModal, { buildMilestonesForTemplate } from '../components/projects/NewProjectModal';
@@ -10,12 +11,14 @@ interface ProjectsProps {
   projectsApi: ReturnType<typeof useProjects>;
   templatesApi: ReturnType<typeof useTemplates>;
   programsApi: ReturnType<typeof usePrograms>;
+  casesApi: ReturnType<typeof useCases>;
 }
 
-export default function Projects({ projectsApi, templatesApi, programsApi }: ProjectsProps) {
+export default function Projects({ projectsApi, templatesApi, programsApi, casesApi }: ProjectsProps) {
   const { projects, addProject, updateProject, updateMilestones } = projectsApi;
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
+  const { cases, addCase, updateCase, deleteCase } = casesApi;
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
@@ -47,6 +50,12 @@ export default function Projects({ projectsApi, templatesApi, programsApi }: Pro
         onBack={() => setSelectedProjectId(null)}
         onUpdateProject={updateProject}
         onUpdateMilestones={updateMilestones}
+        cases={cases}
+        templateCategories={categories}
+        templates={templates}
+        onAddCase={addCase}
+        onUpdateCase={updateCase}
+        onDeleteCase={deleteCase}
       />
     );
   }
