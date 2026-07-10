@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Flame, Plus, Trash2 } from 'lucide-react';
-import type { Project, Task } from '../../types';
+import type { Task } from '../../types';
 import { getEffectiveDueDate, getEffectiveStatus, isParentTask, isTaskUrgent } from '../../services/taskUtils';
 
 interface TaskRowProps {
   task: Task;
-  projects: Project[];
-  showProjectPicker: boolean;
   onChange: (task: Task) => void;
   onPostpone: (id: string, newDate: string) => void;
   onAddSubTask: (parentId: string, title: string) => void;
@@ -20,7 +18,7 @@ const STATUS_COLOR: Record<string, string> = {
   已完成: 'text-emerald-400'
 };
 
-export default function TaskRow({ task, projects, showProjectPicker, onChange, onPostpone, onAddSubTask, onDelete, depth = 0 }: TaskRowProps) {
+export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDelete, depth = 0 }: TaskRowProps) {
   const [addingSub, setAddingSub] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState('');
 
@@ -72,23 +70,6 @@ export default function TaskRow({ task, projects, showProjectPicker, onChange, o
           value={task.title}
           onChange={(e) => updateField({ title: e.target.value })}
         />
-
-        {/* 專案：只有頂層項目能改掛哪個專案 */}
-        <div className="w-32 shrink-0">
-          {showProjectPicker && (
-            <select
-              className="w-full bg-slate-800 rounded px-2 py-1 text-xs text-slate-400"
-              value={task.projectId}
-              onChange={(e) => updateField({ projectId: e.target.value })}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
 
         <div className="w-32 shrink-0">
           {!isParent ? (
@@ -150,8 +131,6 @@ export default function TaskRow({ task, projects, showProjectPicker, onChange, o
             <TaskRow
               key={sub.id}
               task={sub}
-              projects={projects}
-              showProjectPicker={false}
               depth={depth + 1}
               onPostpone={onPostpone}
               onAddSubTask={onAddSubTask}

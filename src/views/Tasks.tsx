@@ -11,13 +11,9 @@ interface TasksProps {
   projectsApi: ReturnType<typeof useProjects>;
 }
 
-type ViewMode = 'date' | 'project';
-
-export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
+export default function Tasks({ tasksApi }: TasksProps) {
   const { tasks, addTask, updateTask, postponeTask, addSubTask, deleteTask } = tasksApi;
-  const { projects } = projectsApi;
 
-  const [mode, setMode] = useState<ViewMode>('date');
   const [showCompleted, setShowCompleted] = useState(false);
 
   const visibleTasks = showCompleted ? tasks : tasks.filter((t) => getEffectiveStatus(t) !== '已完成');
@@ -26,71 +22,49 @@ export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
     updateTask(updated.id, updated);
   }
 
-  function renderRow(t: Task, showProjectPicker: boolean) {
-    return (
-      <TaskRow
-        key={t.id}
-        task={t}
-        projects={projects}
-        showProjectPicker={showProjectPicker}
-        onChange={updateTopLevelTask}
-        onPostpone={postponeTask}
-        onAddSubTask={addSubTask}
-        onDelete={deleteTask}
-      />
-    );
-  }
-
   const sortedByDate = [...visibleTasks].sort((a, b) => {
     const da = getEffectiveDueDate(a) ?? '9999-99-99';
     const db = getEffectiveDueDate(b) ?? '9999-99-99';
     return da.localeCompare(db);
   });
 
-  const grouped = projects
-    .map((p) => ({ project: p, items: visibleTasks.filter((t) => t.projectId === p.id) }))
-    .filter((g) => g.items.length > 0);
-
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">待辦事項</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMode('date')}
-            className={`text-xs px-3 py-1.5 rounded-lg border ${mode === 'date' ? 'border-primary-500 text-primary-400' : 'border-slate-700 text-slate-400'}`}
-          >
-            依預計完成時間
-          </button>
-          <button
-            onClick={() => setMode('project')}
-            className={`text-xs px-3 py-1.5 rounded-lg border ${mode === 'project' ? 'border-primary-500 text-primary-400' : 'border-slate-700 text-slate-400'}`}
-          >
-            依專案分組
-          </button>
-          <label className="text-xs text-slate-400 flex items-center gap-1 ml-2">
-            <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
-            顯示已完成
-          </label>
-        </div>
+        <label className="text-xs text-slate-400 flex items-center gap-1">
+          <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} />
+          顯示已完成
+        </label>
       </div>
 
       <NewTaskForm onCreate={addTask} />
 
+      {/* 欄位標題列，跟 TaskRow 的欄寬對齊；滾動時固定在頂端方便對照 */}
+      <div className="sticky top-0 z-10 flex items-center gap-2 py-1.5 px-3 mb-2 text-xs text-slate-500 bg-slate-950/95 backdrop-blur">
+        <div className="w-20 shrink-0">狀態</div>
+        <div className="w-4 shrink-0" />
+        <div className="flex-1 min-w-[6rem]">待辦事項</div>
+        <div className="w-32 shrink-0">預計完成日</div>
+        <div className="w-14 shrink-0">急迫度</div>
+        <div className="w-8 shrink-0" />
+        <div className="w-8 shrink-0" />
+      </div>
+
       {visibleTasks.length === 0 && <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>}
 
-      {mode === 'date' && <div className="space-y-2">{sortedByDate.map((t) => renderRow(t, true))}</div>}
-
-      {mode === 'project' && (
-        <div className="space-y-6">
-          {grouped.map(({ project, items }) => (
-            <div key={project.id}>
-              <h2 className="text-sm font-semibold text-slate-300 mb-2">{project.name}</h2>
-              <div className="space-y-2">{items.map((t) => renderRow(t, false))}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-2">
+        {sortedByDate.map((t) => (
+          <TaskRow
+            key={t.id}
+            task={t}
+            onChange={updateTopLevelTask}
+            onPostpone={postponeTask}
+            onAddSubTask={addSubTask}
+            onDelete={deleteTask}
+          />
+        ))}
+      </div>
     </div>
   );
 }
