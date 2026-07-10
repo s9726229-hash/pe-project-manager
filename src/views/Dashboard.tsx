@@ -42,9 +42,12 @@ export default function Dashboard({ tasksApi, projectsApi, casesApi, programsApi
   const projectById = new Map(projects.map((p) => [p.id, p]));
 
   const today = todayIso();
-  const todayTasks = flattenTaskLeaves(tasks)
-    .filter((t) => t.dueDate && t.dueDate <= today && t.status !== '已完成')
+  const pendingTasks = flattenTaskLeaves(tasks)
+    .filter((t) => t.dueDate && t.status !== '已完成')
     .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
+  // 今天到期或逾期的優先；尚未到期的也一併列出，方便預先看到接下來的事。
+  const todayTasks = pendingTasks.filter((t) => t.dueDate! <= today);
+  const upcomingTasks = pendingTasks.filter((t) => t.dueDate! > today);
 
   const openCases = cases.filter((c) => !isCaseDone(c));
 
@@ -77,6 +80,24 @@ export default function Dashboard({ tasksApi, projectsApi, casesApi, programsApi
               </div>
             ))}
           </div>
+
+          {upcomingTasks.length > 0 && (
+            <>
+              <div className="flex items-center justify-between mt-4 mb-1 pt-3 border-t border-slate-800">
+                <h3 className="text-xs font-semibold text-slate-400">尚未到期</h3>
+                <span className="text-xs text-slate-500">{upcomingTasks.length} 件</span>
+              </div>
+              <div className="space-y-1">
+                {upcomingTasks.slice(0, 8).map((t) => (
+                  <div key={t.id} className="flex items-center gap-2 text-sm py-1 text-slate-400">
+                    {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
+                    <span className="flex-1 truncate">{t.title}</span>
+                    <span className="text-xs shrink-0 text-slate-500">{t.dueDate}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
@@ -143,31 +164,43 @@ export default function Dashboard({ tasksApi, projectsApi, casesApi, programsApi
           );
         })}
 
-        {/* 未掛大專案的獨立小專案卡片 */}
-        {standaloneProjects.map((p) => {
-          const stage = getCurrentStage(p.milestones);
-          const progress = computeProgressPercent(p.milestones);
-          const nextDate = getNextMilestoneDate(p.milestones);
-          return (
-            <button
-              key={p.id}
-              onClick={() => onOpenProject(p.id)}
-              className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-left hover:border-slate-600"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{p.name}</span>
-                <span className="text-xs text-slate-500">{stage?.name ?? '—'}</span>
-              </div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-                <div className="h-full bg-primary-500 rounded-full" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>進度 {progress}%</span>
-                {nextDate && <span>下個里程碑 {nextDate}</span>}
-              </div>
-            </button>
-          );
-        })}
+        {/* 未歸屬大專案的小專案也集中成一張卡，跟大專案卡片同一種呈現方式 */}
+        {standaloneProjects.length > 0 && (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium">未歸屬大專案</span>
+              <span className="text-xs text-slate-500">{standaloneProjects.length} 個小專案</span>
+            </div>
+            <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
+              <div
+                className="h-full bg-primary-500 rounded-full"
+                style={{ width: `${computeCombinedProgress(standaloneProjects)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
+              <span>整體進度 {computeCombinedProgress(standaloneProjects)}%</span>
+              {combinedNextMilestoneDate(standaloneProjects) && (
+                <span>下個里程碑 {combinedNextMilestoneDate(standaloneProjects)}</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              {standaloneProjects.map((p) => {
+                const stage = getCurrentStage(p.milestones);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => onOpenProject(p.id)}
+                    className="w-full flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-slate-800 text-left"
+                  >
+                    <span className="flex-1 truncate">{p.name}</span>
+                    <span className="text-xs text-slate-500 shrink-0">{stage?.name ?? '—'}</span>
+                    <span className="text-xs text-slate-500 shrink-0">{computeProgressPercent(p.milestones)}%</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
