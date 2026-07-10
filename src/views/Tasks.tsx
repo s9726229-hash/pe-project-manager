@@ -60,7 +60,7 @@ export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
             onClick={() => setMode('date')}
             className={`text-xs px-3 py-1.5 rounded-lg border ${mode === 'date' ? 'border-primary-500 text-primary-400' : 'border-slate-700 text-slate-400'}`}
           >
-            依到期日
+            依預計完成時間
           </button>
           <button
             onClick={() => setMode('project')}
