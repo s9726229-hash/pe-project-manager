@@ -22,11 +22,9 @@ interface ProjectDetailProps {
   onUpdateCase: (id: string, patch: Partial<Case>) => void;
   onDeleteCase: (id: string) => void;
   notes: Note[];
-  onAddNote: (projectId: string, content: string) => void;
-  onUpdateNote: (id: string, content: string) => void;
-  onDeleteNote: (id: string) => void;
+  onSaveNote: (projectId: string, content: string) => void;
   documents: ProjectDocument[];
-  onAddDocument: (input: { projectId: string; type: ProjectDocument['type']; title: string; date: string; link?: string; content?: string }) => void;
+  onAddDocument: (input: { projectId: string; type: ProjectDocument['type']; title: string; date: string; content?: string }) => void;
   onUpdateDocument: (id: string, patch: Partial<ProjectDocument>) => void;
   onDeleteDocument: (id: string) => void;
 }
@@ -56,9 +54,7 @@ export default function ProjectDetail({
   onUpdateCase,
   onDeleteCase,
   notes,
-  onAddNote,
-  onUpdateNote,
-  onDeleteNote,
+  onSaveNote,
   documents,
   onAddDocument,
   onUpdateDocument,
@@ -72,7 +68,7 @@ export default function ProjectDetail({
 
   const projectCases = cases.filter((c) => c.projectId === project.id);
   const selectedCase = projectCases.find((c) => c.id === selectedCaseId) ?? null;
-  const projectNotes = notes.filter((n) => n.projectId === project.id);
+  const projectNote = notes.find((n) => n.projectId === project.id);
   const projectDocuments = documents.filter((d) => d.projectId === project.id);
 
   function field(patch: Partial<Project>) {
@@ -207,14 +203,7 @@ export default function ProjectDetail({
           onChange={(milestones) => onUpdateMilestones(project.id, milestones)}
         />
       )}
-      {tab === 'NOTES' && (
-        <NotesTab
-          notes={projectNotes}
-          onAdd={(content) => onAddNote(project.id, content)}
-          onUpdate={onUpdateNote}
-          onDelete={onDeleteNote}
-        />
-      )}
+      {tab === 'NOTES' && <NotesTab note={projectNote} onSave={(content) => onSaveNote(project.id, content)} />}
 
       {tab === 'CASES' &&
         (selectedCase ? (

@@ -90,7 +90,6 @@ export interface ProjectDocument {
   type: '文件連結' | '會議記錄';
   title: string;
   date: string;
-  link?: string;
   content?: string;
 }
 

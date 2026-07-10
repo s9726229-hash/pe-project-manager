@@ -23,7 +23,7 @@ export default function Projects({ projectsApi, templatesApi, programsApi, cases
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
   const { cases, addCase, updateCase, deleteCase } = casesApi;
-  const { notes, addNote, updateNote, deleteNote } = notesApi;
+  const { notes, saveNote } = notesApi;
   const { documents, addDocument, updateDocument, deleteDocument } = documentsApi;
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -63,9 +63,7 @@ export default function Projects({ projectsApi, templatesApi, programsApi, cases
         onUpdateCase={updateCase}
         onDeleteCase={deleteCase}
         notes={notes}
-        onAddNote={addNote}
-        onUpdateNote={updateNote}
-        onDeleteNote={deleteNote}
+        onSaveNote={saveNote}
         documents={documents}
         onAddDocument={addDocument}
         onUpdateDocument={updateDocument}

@@ -7,7 +7,6 @@ export interface NewDocumentInput {
   type: ProjectDocument['type'];
   title: string;
   date: string;
-  link?: string;
   content?: string;
 }
 

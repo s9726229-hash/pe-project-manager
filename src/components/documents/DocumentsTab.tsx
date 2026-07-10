@@ -4,7 +4,7 @@ import type { ProjectDocument } from '../../types';
 
 interface DocumentsTabProps {
   documents: ProjectDocument[];
-  onAdd: (input: { type: ProjectDocument['type']; title: string; date: string; link?: string; content?: string }) => void;
+  onAdd: (input: { type: ProjectDocument['type']; title: string; date: string; content?: string }) => void;
   onUpdate: (id: string, patch: Partial<ProjectDocument>) => void;
   onDelete: (id: string) => void;
 }
@@ -17,14 +17,12 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: D
   const [type, setType] = useState<ProjectDocument['type']>('會議記錄');
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(todayIso());
-  const [link, setLink] = useState('');
   const [content, setContent] = useState('');
 
   function handleAdd() {
     if (!title.trim()) return;
-    onAdd({ type, title: title.trim(), date, link: link.trim() || undefined, content: content.trim() || undefined });
+    onAdd({ type, title: title.trim(), date, content: content.trim() || undefined });
     setTitle('');
-    setLink('');
     setContent('');
   }
 
@@ -44,12 +42,6 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: D
           />
           <input type="date" className="bg-slate-800 rounded px-2 py-1.5 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
-        <input
-          className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-          placeholder="連結（選填）"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-        />
         <textarea
           className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm resize-none"
           rows={2}
@@ -79,11 +71,6 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: D
                 <Trash2 size={14} />
               </button>
             </div>
-            {d.link && (
-              <a href={d.link} target="_blank" rel="noreferrer" className="text-xs text-primary-400 hover:underline block mt-1">
-                {d.link}
-              </a>
-            )}
             {d.content && <p className="text-xs text-slate-400 mt-1 whitespace-pre-wrap">{d.content}</p>}
           </div>
         ))}

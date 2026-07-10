@@ -13,19 +13,17 @@ export function useNotes() {
     saveToStorage(STORAGE_KEYS.notes, notes);
   }, [notes]);
 
-  function addNote(projectId: string, content: string) {
-    const note: Note = { id: newId(), projectId, content, createdAt: nowIso(), updatedAt: nowIso() };
-    setNotes((prev) => [note, ...prev]);
-    return note.id;
+  // 大白板風格：一個專案只有一份筆記，第一次存的時候才建立，之後都是更新同一筆。
+  function saveNote(projectId: string, content: string) {
+    setNotes((prev) => {
+      const existing = prev.find((n) => n.projectId === projectId);
+      if (existing) {
+        return prev.map((n) => (n.id === existing.id ? { ...n, content, updatedAt: nowIso() } : n));
+      }
+      const note: Note = { id: newId(), projectId, content, createdAt: nowIso(), updatedAt: nowIso() };
+      return [...prev, note];
+    });
   }
 
-  function updateNote(id: string, content: string) {
-    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, content, updatedAt: nowIso() } : n)));
-  }
-
-  function deleteNote(id: string) {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-  }
-
-  return { notes, addNote, updateNote, deleteNote };
+  return { notes, saveNote };
 }
