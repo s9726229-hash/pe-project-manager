@@ -25,6 +25,7 @@ export const STORAGE_KEYS = {
   tasks: 'tasks',
   cases: 'cases',
   notes: 'notes',
+  documents: 'documents',
   knowledgeCategories: 'knowledgeCategories',
   knowledgeNotes: 'knowledgeNotes'
 } as const;

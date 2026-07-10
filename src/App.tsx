@@ -11,6 +11,9 @@ import { useTemplates } from './hooks/useTemplates';
 import { usePrograms } from './hooks/usePrograms';
 import { useTasks } from './hooks/useTasks';
 import { useCases } from './hooks/useCases';
+import { useNotes } from './hooks/useNotes';
+import { useDocuments } from './hooks/useDocuments';
+import { useKnowledge } from './hooks/useKnowledge';
 
 export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'SETTINGS';
 
@@ -21,6 +24,9 @@ export default function App() {
   const programsApi = usePrograms();
   const tasksApi = useTasks();
   const casesApi = useCases();
+  const notesApi = useNotes();
+  const documentsApi = useDocuments();
+  const knowledgeApi = useKnowledge();
 
   return (
     <div className="flex min-h-screen bg-slate-950">
@@ -28,11 +34,18 @@ export default function App() {
       <main className="flex-1 p-8">
         {view === 'DASHBOARD' && <Dashboard tasksApi={tasksApi} projectsApi={projectsApi} casesApi={casesApi} />}
         {view === 'PROJECTS' && (
-          <Projects projectsApi={projectsApi} templatesApi={templatesApi} programsApi={programsApi} casesApi={casesApi} />
+          <Projects
+            projectsApi={projectsApi}
+            templatesApi={templatesApi}
+            programsApi={programsApi}
+            casesApi={casesApi}
+            notesApi={notesApi}
+            documentsApi={documentsApi}
+          />
         )}
         {view === 'TASKS' && <Tasks tasksApi={tasksApi} projectsApi={projectsApi} />}
         {view === 'CALENDAR' && <Calendar />}
-        {view === 'KNOWLEDGE_BASE' && <KnowledgeBase />}
+        {view === 'KNOWLEDGE_BASE' && <KnowledgeBase knowledgeApi={knowledgeApi} />}
         {view === 'SETTINGS' && <Settings templatesApi={templatesApi} />}
       </main>
     </div>

@@ -83,6 +83,17 @@ export interface Note {
   updatedAt: string;
 }
 
+// 文件連結或正式會議記錄，掛在專案下——跟 Note（隨手筆記）分開，這邊是比較正式的紀錄。
+export interface ProjectDocument {
+  id: string;
+  projectId: string;
+  type: '文件連結' | '會議記錄';
+  title: string;
+  date: string;
+  link?: string;
+  content?: string;
+}
+
 export type CaseStepStatus = '待辦' | '進行中' | '已完成';
 
 // Case 套範本後拿到自己獨立的一份步驟拷貝（不是回頭參照 Template），

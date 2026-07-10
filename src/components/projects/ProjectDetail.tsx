@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import type { Case, Program, Project, Template, TemplateCategory } from '../../types';
+import type { Case, Note, Program, Project, ProjectDocument, Template, TemplateCategory } from '../../types';
 import ScheduleTab from './ScheduleTab';
 import CaseList from '../cases/CaseList';
 import CaseDetail from '../cases/CaseDetail';
 import NewCaseModal from '../cases/NewCaseModal';
+import NotesTab from '../notes/NotesTab';
+import DocumentsTab from '../documents/DocumentsTab';
 
 interface ProjectDetailProps {
   project: Project;
@@ -19,6 +21,14 @@ interface ProjectDetailProps {
   onAddCase: (input: { projectId: string; name: string; openDate: string; partNumber?: string; notes?: string; template: Template }) => string;
   onUpdateCase: (id: string, patch: Partial<Case>) => void;
   onDeleteCase: (id: string) => void;
+  notes: Note[];
+  onAddNote: (projectId: string, content: string) => void;
+  onUpdateNote: (id: string, content: string) => void;
+  onDeleteNote: (id: string) => void;
+  documents: ProjectDocument[];
+  onAddDocument: (input: { projectId: string; type: ProjectDocument['type']; title: string; date: string; link?: string; content?: string }) => void;
+  onUpdateDocument: (id: string, patch: Partial<ProjectDocument>) => void;
+  onDeleteDocument: (id: string) => void;
 }
 
 type Tab = 'SCHEDULE' | 'NOTES' | 'CASES' | 'DOCS';
@@ -44,7 +54,15 @@ export default function ProjectDetail({
   templates,
   onAddCase,
   onUpdateCase,
-  onDeleteCase
+  onDeleteCase,
+  notes,
+  onAddNote,
+  onUpdateNote,
+  onDeleteNote,
+  documents,
+  onAddDocument,
+  onUpdateDocument,
+  onDeleteDocument
 }: ProjectDetailProps) {
   const [tab, setTab] = useState<Tab>('SCHEDULE');
   const [creatingProgram, setCreatingProgram] = useState(false);
@@ -54,6 +72,8 @@ export default function ProjectDetail({
 
   const projectCases = cases.filter((c) => c.projectId === project.id);
   const selectedCase = projectCases.find((c) => c.id === selectedCaseId) ?? null;
+  const projectNotes = notes.filter((n) => n.projectId === project.id);
+  const projectDocuments = documents.filter((d) => d.projectId === project.id);
 
   function field(patch: Partial<Project>) {
     onUpdateProject(project.id, patch);
@@ -187,7 +207,14 @@ export default function ProjectDetail({
           onChange={(milestones) => onUpdateMilestones(project.id, milestones)}
         />
       )}
-      {tab === 'NOTES' && <p className="text-slate-500 text-sm">備忘事項功能將在階段 5 實作。</p>}
+      {tab === 'NOTES' && (
+        <NotesTab
+          notes={projectNotes}
+          onAdd={(content) => onAddNote(project.id, content)}
+          onUpdate={onUpdateNote}
+          onDelete={onDeleteNote}
+        />
+      )}
 
       {tab === 'CASES' &&
         (selectedCase ? (
@@ -210,7 +237,14 @@ export default function ProjectDetail({
           </>
         ))}
 
-      {tab === 'DOCS' && <p className="text-slate-500 text-sm">文件/會議記錄功能將在階段 5 實作。</p>}
+      {tab === 'DOCS' && (
+        <DocumentsTab
+          documents={projectDocuments}
+          onAdd={(input) => onAddDocument({ ...input, projectId: project.id })}
+          onUpdate={onUpdateDocument}
+          onDelete={onDeleteDocument}
+        />
+      )}
     </div>
   );
 }
