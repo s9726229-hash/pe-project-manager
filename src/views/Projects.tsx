@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { useProjects } from '../hooks/useProjects';
 import type { useTemplates } from '../hooks/useTemplates';
 import type { usePrograms } from '../hooks/usePrograms';
@@ -16,9 +16,20 @@ interface ProjectsProps {
   casesApi: ReturnType<typeof useCases>;
   notesApi: ReturnType<typeof useNotes>;
   documentsApi: ReturnType<typeof useDocuments>;
+  focusProjectId?: string | null;
+  onFocusConsumed?: () => void;
 }
 
-export default function Projects({ projectsApi, templatesApi, programsApi, casesApi, notesApi, documentsApi }: ProjectsProps) {
+export default function Projects({
+  projectsApi,
+  templatesApi,
+  programsApi,
+  casesApi,
+  notesApi,
+  documentsApi,
+  focusProjectId,
+  onFocusConsumed
+}: ProjectsProps) {
   const { projects, addProject, updateProject, updateMilestones } = projectsApi;
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
@@ -28,6 +39,15 @@ export default function Projects({ projectsApi, templatesApi, programsApi, cases
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
+
+  // 從 Dashboard 點卡片跳進來時，直接打開對應專案的詳情頁。
+  useEffect(() => {
+    if (focusProjectId) {
+      setSelectedProjectId(focusProjectId);
+      onFocusConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 

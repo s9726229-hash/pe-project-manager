@@ -19,6 +19,8 @@ export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWL
 
 export default function App() {
   const [view, setView] = useState<ViewState>('DASHBOARD');
+  // 從 Dashboard 點專案卡片跳進專案詳情用：設定後切到 PROJECTS 頁自動打開該專案。
+  const [focusProjectId, setFocusProjectId] = useState<string | null>(null);
   const projectsApi = useProjects();
   const templatesApi = useTemplates();
   const programsApi = usePrograms();
@@ -28,11 +30,24 @@ export default function App() {
   const documentsApi = useDocuments();
   const knowledgeApi = useKnowledge();
 
+  function openProject(projectId: string) {
+    setFocusProjectId(projectId);
+    setView('PROJECTS');
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-950">
       <Sidebar currentView={view} onNavigate={setView} />
       <main className="flex-1 p-8">
-        {view === 'DASHBOARD' && <Dashboard tasksApi={tasksApi} projectsApi={projectsApi} casesApi={casesApi} />}
+        {view === 'DASHBOARD' && (
+          <Dashboard
+            tasksApi={tasksApi}
+            projectsApi={projectsApi}
+            casesApi={casesApi}
+            programsApi={programsApi}
+            onOpenProject={openProject}
+          />
+        )}
         {view === 'PROJECTS' && (
           <Projects
             projectsApi={projectsApi}
@@ -41,10 +56,12 @@ export default function App() {
             casesApi={casesApi}
             notesApi={notesApi}
             documentsApi={documentsApi}
+            focusProjectId={focusProjectId}
+            onFocusConsumed={() => setFocusProjectId(null)}
           />
         )}
         {view === 'TASKS' && <Tasks tasksApi={tasksApi} projectsApi={projectsApi} />}
-        {view === 'CALENDAR' && <Calendar />}
+        {view === 'CALENDAR' && <Calendar tasksApi={tasksApi} projectsApi={projectsApi} />}
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase knowledgeApi={knowledgeApi} />}
         {view === 'SETTINGS' && <Settings templatesApi={templatesApi} />}
       </main>
