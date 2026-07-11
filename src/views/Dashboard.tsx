@@ -1,4 +1,5 @@
-import { Flame } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Flame, Plus } from 'lucide-react';
 import type { useTasks } from '../hooks/useTasks';
 import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
@@ -62,9 +63,19 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenProject }: DashboardProps) {
-  const { tasks } = tasksApi;
+  const { tasks, setStatus, addTask } = tasksApi;
   const { projects } = projectsApi;
   const { programs } = programsApi;
+
+  const [quickTitle, setQuickTitle] = useState('');
+
+  function handleQuickAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const title = quickTitle.trim();
+    if (!title) return;
+    addTask({ projectId: DEFAULT_PROJECT_ID, title, dueDate: todayIso() });
+    setQuickTitle('');
+  }
 
   const today   = todayIso();
   const weekEnd = addDays(startOfWeek(today), 6);
@@ -97,32 +108,51 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
           <span className="ml-2 text-slate-600 font-normal">{pendingTasks.length} 件</span>
         </h2>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-          {pendingTasks.length === 0 && (
-            <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>
-          )}
+        <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="p-4">
+            {pendingTasks.length === 0 && (
+              <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>
+            )}
 
-          <div className="space-y-4">
-            {BUCKET_ORDER.filter((b) => buckets[b].length > 0).map((b, i) => (
-              <div key={b}>
-                <div className={`flex items-center gap-2 mb-2 ${i > 0 ? 'pt-3 border-t border-slate-800' : ''}`}>
-                  <span className={`text-xs font-semibold ${BUCKET_META[b].color}`}>{BUCKET_META[b].label}</span>
-                  <span className="text-xs text-slate-600">{buckets[b].length} 件</span>
+            <div className="space-y-4">
+              {BUCKET_ORDER.filter((b) => buckets[b].length > 0).map((b, i) => (
+                <div key={b}>
+                  <div className={`flex items-center gap-2 mb-2 ${i > 0 ? 'pt-3 border-t border-slate-800' : ''}`}>
+                    <span className={`text-xs font-semibold ${BUCKET_META[b].color}`}>{BUCKET_META[b].label}</span>
+                    <span className="text-xs text-slate-600">{buckets[b].length} 件</span>
+                  </div>
+                  <div className="space-y-1">
+                    {buckets[b].map((t) => (
+                      <div key={t.id} className="flex items-center gap-2 text-sm py-0.5 group/row">
+                        <button
+                          onClick={() => setStatus(t.id, '已完成')}
+                          className="w-4 h-4 rounded-full border border-slate-600 shrink-0 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group-hover/row:border-slate-400"
+                        >
+                          <Check size={10} className="text-emerald-400 opacity-0 group-hover/row:opacity-60 transition-opacity" />
+                        </button>
+                        {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
+                        <span className="flex-1 truncate text-slate-300">{t.title}</span>
+                        <span className={`text-xs shrink-0 ${b === 'overdue' ? 'text-red-400' : 'text-slate-500'}`}>
+                          {t.dueDate ?? '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {buckets[b].map((t) => (
-                    <div key={t.id} className="flex items-center gap-2 text-sm py-0.5">
-                      {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
-                      <span className="flex-1 truncate text-slate-300">{t.title}</span>
-                      <span className={`text-xs shrink-0 ${b === 'overdue' ? 'text-red-400' : 'text-slate-500'}`}>
-                        {t.dueDate ?? '—'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+
+          {/* 快速新增 */}
+          <form onSubmit={handleQuickAdd} className="border-t border-slate-800 flex items-center gap-2 px-3 py-2">
+            <Plus size={13} className="text-slate-600 shrink-0" />
+            <input
+              className="flex-1 bg-transparent text-sm text-slate-300 placeholder-slate-600 outline-none"
+              placeholder="快速新增待辦..."
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+            />
+          </form>
         </div>
       </div>
 
