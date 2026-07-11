@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
+import SearchModal from './components/search/SearchModal';
 import Dashboard from './views/Dashboard';
 import Projects from './views/Projects';
 import Tasks from './views/Tasks';
@@ -19,8 +20,9 @@ export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWL
 
 export default function App() {
   const [view, setView] = useState<ViewState>('DASHBOARD');
-  // 從 Dashboard 點專案卡片跳進專案詳情用：設定後切到 PROJECTS 頁自動打開該專案。
   const [focusProjectId, setFocusProjectId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
   const projectsApi = useProjects();
   const templatesApi = useTemplates();
   const programsApi = usePrograms();
@@ -35,9 +37,21 @@ export default function App() {
     setView('PROJECTS');
   }
 
+  // Ctrl+K / Cmd+K 開啟搜尋
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-slate-950">
-      <Sidebar currentView={view} onNavigate={setView} />
+      <Sidebar currentView={view} onNavigate={setView} onOpenSearch={() => setSearchOpen(true)} />
       <main className="flex-1 p-8">
         {view === 'DASHBOARD' && (
           <Dashboard
@@ -65,6 +79,21 @@ export default function App() {
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase knowledgeApi={knowledgeApi} />}
         {view === 'SETTINGS' && <Settings templatesApi={templatesApi} />}
       </main>
+
+      {searchOpen && (
+        <SearchModal
+          projects={projectsApi.projects}
+          programs={programsApi.programs}
+          tasks={tasksApi.tasks}
+          cases={casesApi.cases}
+          notes={notesApi.notes}
+          knowledgeNotes={knowledgeApi.notes}
+          knowledgeCategories={knowledgeApi.categories}
+          onClose={() => setSearchOpen(false)}
+          onNavigate={setView}
+          onOpenProject={openProject}
+        />
+      )}
     </div>
   );
 }

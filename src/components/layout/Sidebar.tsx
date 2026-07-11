@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, CheckSquare, CalendarDays, BookOpen, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, CheckSquare, CalendarDays, BookOpen, Settings as SettingsIcon, Search } from 'lucide-react';
 import type { ViewState } from '../../App';
 
 interface NavItem {
@@ -19,12 +19,24 @@ const NAV_ITEMS: NavItem[] = [
 interface SidebarProps {
   currentView: ViewState;
   onNavigate: (view: ViewState) => void;
+  onOpenSearch: () => void;
 }
 
-export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
+export default function Sidebar({ currentView, onNavigate, onOpenSearch }: SidebarProps) {
   return (
     <aside className="w-56 shrink-0 bg-slate-900 border-r border-slate-800 min-h-screen p-4">
-      <div className="text-lg font-bold mb-6 px-2">PE Project Manager</div>
+      <div className="text-lg font-bold mb-4 px-2">PE Project Manager</div>
+
+      {/* 搜尋按鈕 */}
+      <button
+        onClick={onOpenSearch}
+        className="w-full flex items-center gap-2 px-3 py-1.5 mb-4 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 text-sm transition-colors"
+      >
+        <Search size={14} />
+        <span className="flex-1 text-left">搜尋...</span>
+        <kbd className="text-xs bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">⌃K</kbd>
+      </button>
+
       <nav className="space-y-1">
         {NAV_ITEMS.map(({ view, label, icon: Icon }) => {
           const active = currentView === view;

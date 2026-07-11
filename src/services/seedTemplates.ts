@@ -1,19 +1,14 @@
 import type { Template, TemplateCategory, TemplateStep } from '../types';
 import { newId } from './storage';
 
-// 種子資料：兩個內建分類、三份預設範本。對應 REQUIREMENTS.md 的公版流程。
-// 之後使用者可以在 Settings 裡自由編輯、複製、新增分類/範本，這裡只是第一次載入時的初始值。
-
 function step(name: string, groupOrder: number, opts: Partial<TemplateStep> = {}): TemplateStep {
   return { id: newId(), name, groupOrder, ...opts };
 }
 
-// 大類（有子項目的分組節點）：不帶自己的 checklist/工期，只有名稱＋子項目。
 function stageGroup(name: string, groupOrder: number, subSteps: TemplateStep[]): TemplateStep {
   return { id: newId(), name, groupOrder, subSteps };
 }
 
-// 子項目（葉節點）：自己有工期，之後套用範本時會各自算出日期/負責人/狀態。
 function subItem(name: string, groupOrder: number, durationDays: number): TemplateStep {
   return { id: newId(), name, groupOrder, durationDays };
 }
@@ -32,42 +27,71 @@ export function buildSeedTemplates(): Template[] {
     name: '標準NPI流程',
     isDefault: true,
     steps: [
+      // ── Phase0: Kickoff / Planning ──
       stageGroup('Kickoff', 1, [
-        subItem('專案範圍/目標確認', 1, 1),
-        subItem('PRD 簽核', 2, 1),
-        subItem('時程/資源核准', 2, 2),
-        subItem('跨部門窗口確認', 3, 1)
+        subItem('NPI 同步會議',   1, 1),
+        subItem('2D&3D 圖面',     2, 3),
       ]),
+
+      // ── Phase1: Design ──
       stageGroup('Design', 2, [
-        subItem('電路/結構設計完成', 1, 8),
-        subItem('BOM 初版完成', 2, 3),
-        subItem('關鍵料件尋源/備料確認', 2, 4),
-        subItem('Design Review 通過', 3, 2)
+        subItem('Schematic',                        1, 5),
+        subItem('疊構資料確認(SI)',                  2, 2),
+        subItem('疊構資料確認(Layout)',              2, 2),
+        subItem('元件尺寸 & 線路確認',               2, 2),
+        subItem('Layout Guideline',                 3, 2),
+        subItem('Layout checklist',                 4, 2),
+        subItem('PCB Simulation Report',            4, 3),
+        subItem('EMI/ESD Check',                   4, 2),
+        subItem('Valor check',                      4, 1),
+        subItem('ME Layout check',                  4, 1),
+        subItem('DFM 文件確認',                      5, 1),
+        subItem('SI特殊測試需求',                    5, 1),
+        subItem('Gerber out',                       6, 1),
+        subItem('Sideband profile',                 6, 1),
+        subItem('PCB CE Mapping',                   6, 1),
+        subItem('審核PCBA版號納入PCB_Mapping',       6, 1),
       ]),
+
+      // ── Phase2: EVT ──
       stageGroup('EVT', 3, [
-        subItem('EVT 樣品試產完成', 1, 5),
-        subItem('功能測試通過', 2, 4),
-        subItem('可靠性測試啟動', 2, 3),
-        subItem('已知問題清單建立', 3, 3)
+        subItem('新設計規範(測項)確認',                      1, 2),
+        subItem('NAND Configuration Simulation Result',    2, 3),
+        subItem('Device type 維護(PM)',                    2, 1),
+        subItem('流程卡系統維護',                            2, 1),
+        subItem('PCB洗板',                                 3, 1),
+        subItem('Power check & Components Location',      3, 2),
+        subItem('測試治具',                                  3, 5),
       ]),
+
+      // ── Phase3: DVT ──
       stageGroup('DVT', 4, [
-        subItem('DVT 樣品試產完成', 1, 6),
-        subItem('可靠性測試完整通過', 2, 6),
-        subItem('法規/認證送測啟動', 2, 4),
-        subItem('ECN 已收斂/BOM Cost 達標', 3, 4)
+        subItem('新產品試作確認表單',                         1, 2),
+        subItem('SMT打樣試產製程報告',                       2, 3),
+        subItem('Final BOM/ Schematic',                   2, 2),
+        subItem('PCBA approve report (electrical)',        3, 2),
+        subItem('Module Reliability Test',                3, 10),
+        subItem('包材樣品需求確認',                           3, 2),
+        subItem('包裝可靠度測試',                             4, 5),
+        subItem('測試產能/技轉',                              4, 3),
+        subItem('DVT設計審查確認表(QR2716)',                  5, 1),
       ]),
+
+      // ── Phase4: PVT ──
       stageGroup('PVT', 5, [
-        subItem('量產線試產完成', 1, 5),
-        subItem('良率達標', 2, 4),
-        subItem('認證/法規測試通過', 2, 4),
-        subItem('供應鏈量產備料確認', 3, 2)
+        subItem('QC Flow Chart',                1, 2),
+        subItem('PCBA Trial Run report',        2, 5),
+        subItem('QA Trial Run Report',          2, 5),
+        subItem('PVT設計審查確認表(QR2710)',      3, 1),
       ]),
+
+      // ── Phase5: MP ──
       stageGroup('MP', 6, [
-        subItem('量產首批品保簽收通過', 1, 1),
-        subItem('SOP/作業指導書完成', 2, 1),
-        subItem('供應鏈量產備料確認', 2, 2),
-        subItem('專案結案報告', 3, 1)
-      ])
+        subItem('量產首批品保簽收通過',    1, 1),
+        subItem('SOP/作業指導書完成',     2, 1),
+        subItem('供應鏈量產備料確認',      2, 2),
+        subItem('專案結案報告',           3, 1),
+      ]),
     ]
   };
 

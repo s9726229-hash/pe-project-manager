@@ -97,89 +97,92 @@ export default function ProjectDetail({
         <ArrowLeft size={16} /> 返回專案列表
       </button>
 
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-6 space-y-3">
-        <div className="flex items-end justify-between gap-3">
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 flex-1">
-            <label className="text-xs text-slate-400 space-y-1 block">
-              大專案
-              <select
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={project.programId ?? ''}
-                onChange={(e) => handleProgramChange(e.target.value)}
-              >
-                <option value="">不掛</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-                <option value={NEW_PROGRAM_VALUE}>＋ 新增...</option>
-              </select>
-            </label>
-            <label className="text-xs text-slate-400 space-y-1 block">
-              小專案
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm font-semibold text-slate-100"
-                value={project.name}
-                onChange={(e) => field({ name: e.target.value })}
-              />
-            </label>
-            <label className="text-xs text-slate-400 space-y-1 block">
-              產品線
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={project.productLine}
-                onChange={(e) => field({ productLine: e.target.value })}
-              />
-            </label>
-            <label className="text-xs text-slate-400 space-y-1 block">
-              產品等級
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={project.grade}
-                onChange={(e) => field({ grade: e.target.value })}
-              />
-            </label>
-            <label className="text-xs text-slate-400 space-y-1 block">
-              負責窗口
-              <input
-                className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-                value={project.owner}
-                onChange={(e) => field({ owner: e.target.value })}
-              />
-            </label>
-            <label className="text-xs text-slate-400 space-y-1 block">
-              啟動日
-              <div className="w-full bg-slate-800/50 rounded px-2 py-1.5 text-sm text-slate-400">{project.startDate}</div>
-            </label>
-          </div>
-          <span className="text-xs px-2 py-1.5 rounded bg-slate-800 text-slate-400 shrink-0">{project.status}</span>
+      {/* Meta Block — 緊湊化 */}
+      <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 mb-6 space-y-2">
+        {/* 第一行：專案名稱 + 狀態 */}
+        <div className="flex items-center justify-between gap-3">
+          <input
+            className="text-base font-semibold bg-transparent outline-none text-slate-100 flex-1 min-w-0 border-b border-transparent hover:border-slate-700 focus:border-primary-500 transition-colors pb-0.5"
+            value={project.name}
+            onChange={(e) => field({ name: e.target.value })}
+            placeholder="專案名稱"
+          />
+          <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">{project.status}</span>
+        </div>
+
+        {/* 第二行：Metadata chips */}
+        <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-slate-500">
+          <span className="flex items-center gap-1">
+            大專案
+            <select
+              className="bg-transparent text-slate-300 outline-none cursor-pointer hover:text-slate-100 transition-colors"
+              value={project.programId ?? ''}
+              onChange={(e) => handleProgramChange(e.target.value)}
+            >
+              <option value="">—</option>
+              {programs.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+              <option value={NEW_PROGRAM_VALUE}>＋ 新增...</option>
+            </select>
+          </span>
+          <span className="text-slate-700">·</span>
+          <span className="flex items-center gap-1">
+            產品線
+            <input
+              className="bg-transparent text-slate-300 outline-none w-24 border-b border-transparent hover:border-slate-700 focus:border-primary-500 transition-colors"
+              value={project.productLine}
+              onChange={(e) => field({ productLine: e.target.value })}
+              placeholder="—"
+            />
+          </span>
+          <span className="text-slate-700">·</span>
+          <span className="flex items-center gap-1">
+            等級
+            <input
+              className="bg-transparent text-slate-300 outline-none w-16 border-b border-transparent hover:border-slate-700 focus:border-primary-500 transition-colors"
+              value={project.grade}
+              onChange={(e) => field({ grade: e.target.value })}
+              placeholder="—"
+            />
+          </span>
+          <span className="text-slate-700">·</span>
+          <span className="flex items-center gap-1">
+            負責窗口
+            <input
+              className="bg-transparent text-slate-300 outline-none w-20 border-b border-transparent hover:border-slate-700 focus:border-primary-500 transition-colors"
+              value={project.owner}
+              onChange={(e) => field({ owner: e.target.value })}
+              placeholder="—"
+            />
+          </span>
+          <span className="text-slate-700">·</span>
+          <span>啟動日 <span className="text-slate-400">{project.startDate}</span></span>
         </div>
 
         {creatingProgram && (
           <div className="flex items-center gap-1">
             <input
               autoFocus
-              className="bg-slate-800 rounded px-2 py-1.5 text-sm w-48"
+              className="bg-slate-800 rounded px-2 py-1 text-xs w-40"
               placeholder="新大專案名稱"
               value={newProgramName}
               onChange={(e) => setNewProgramName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleConfirmNewProgram()}
             />
-            <button onClick={handleConfirmNewProgram} className="text-sm text-primary-400 hover:text-primary-300 px-2">
+            <button onClick={handleConfirmNewProgram} className="text-xs text-primary-400 hover:text-primary-300 px-2">
               確定
             </button>
           </div>
         )}
 
-        <label className="text-xs text-slate-400 space-y-1 block">
-          備註
-          <input
-            className="w-full bg-slate-800 rounded px-2 py-1.5 text-sm"
-            value={project.notes}
-            onChange={(e) => field({ notes: e.target.value })}
-          />
-        </label>
+        {/* 備註 */}
+        <input
+          className="w-full bg-transparent text-xs text-slate-400 outline-none placeholder-slate-600 border-t border-slate-800 pt-2"
+          placeholder="備註..."
+          value={project.notes}
+          onChange={(e) => field({ notes: e.target.value })}
+        />
       </div>
 
       <div className="flex items-center gap-1 border-b border-slate-800 mb-6">
