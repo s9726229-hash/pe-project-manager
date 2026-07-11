@@ -15,8 +15,31 @@ interface DashboardProps {
   onOpenProject: (projectId: string) => void;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+function todayIso(): string { return new Date().toISOString().slice(0, 10); }
+
+function addDays(iso: string, n: number) {
+  const d = new Date(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10);
+}
+function startOfWeek(iso: string) {
+  const d = new Date(iso); const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)); return d.toISOString().slice(0, 10);
+}
+
+type Bucket = 'overdue' | 'today' | 'week' | 'later' | 'none';
+const BUCKET_META: Record<Bucket, { label: string; color: string }> = {
+  overdue: { label: '逾期',   color: 'text-red-400' },
+  today:   { label: '今天',   color: 'text-amber-400' },
+  week:    { label: '本週',   color: 'text-sky-400' },
+  later:   { label: '之後',   color: 'text-slate-400' },
+  none:    { label: '無期限', color: 'text-slate-500' },
+};
+const BUCKET_ORDER: Bucket[] = ['overdue', 'today', 'week', 'later', 'none'];
+function getBucket(dueDate: string | undefined, today: string, weekEnd: string): Bucket {
+  if (!dueDate) return 'none';
+  if (dueDate < today) return 'overdue';
+  if (dueDate === today) return 'today';
+  if (dueDate <= weekEnd) return 'week';
+  return 'later';
 }
 
 function computeCombinedProgress(projects: Project[]): number {
@@ -43,14 +66,16 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const { projects } = projectsApi;
   const { programs } = programsApi;
 
-  const today = todayIso();
+  const today   = todayIso();
+  const weekEnd = addDays(startOfWeek(today), 6);
 
-  // 待辦
+  // 待辦 — 分時間段
   const pendingTasks = flattenTaskLeaves(tasks)
-    .filter((t) => t.dueDate && t.status !== '已完成')
-    .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
-  const todayTasks    = pendingTasks.filter((t) => t.dueDate! <= today);
-  const upcomingTasks = pendingTasks.filter((t) => t.dueDate! > today);
+    .filter((t) => t.status !== '已完成')
+    .sort((a, b) => ((a.dueDate ?? '9999') < (b.dueDate ?? '9999') ? -1 : 1));
+
+  const buckets: Record<Bucket, typeof pendingTasks> = { overdue: [], today: [], week: [], later: [], none: [] };
+  for (const t of pendingTasks) buckets[getBucket(t.dueDate, today, weekEnd)].push(t);
 
   // 專案卡片：進行中 + 暫停
   const visibleProjects = projects.filter(
@@ -77,43 +102,27 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
             <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>
           )}
 
-          {todayTasks.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-amber-400">今天 / 逾期</span>
-                <span className="text-xs text-slate-500">{todayTasks.length} 件</span>
+          <div className="space-y-4">
+            {BUCKET_ORDER.filter((b) => buckets[b].length > 0).map((b, i) => (
+              <div key={b}>
+                <div className={`flex items-center gap-2 mb-2 ${i > 0 ? 'pt-3 border-t border-slate-800' : ''}`}>
+                  <span className={`text-xs font-semibold ${BUCKET_META[b].color}`}>{BUCKET_META[b].label}</span>
+                  <span className="text-xs text-slate-600">{buckets[b].length} 件</span>
+                </div>
+                <div className="space-y-1">
+                  {buckets[b].map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 text-sm py-0.5">
+                      {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
+                      <span className="flex-1 truncate text-slate-300">{t.title}</span>
+                      <span className={`text-xs shrink-0 ${b === 'overdue' ? 'text-red-400' : 'text-slate-500'}`}>
+                        {t.dueDate ?? '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1">
-                {todayTasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 text-sm py-1">
-                    {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
-                    <span className="flex-1 truncate">{t.title}</span>
-                    <span className={`text-xs shrink-0 ${t.dueDate! < today ? 'text-red-400' : 'text-slate-500'}`}>
-                      {t.dueDate}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {upcomingTasks.length > 0 && (
-            <div className={todayTasks.length > 0 ? 'border-t border-slate-800 pt-3' : ''}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-400">尚未到期</span>
-                <span className="text-xs text-slate-500">{upcomingTasks.length} 件</span>
-              </div>
-              <div className="space-y-1">
-                {upcomingTasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 text-sm py-1 text-slate-400">
-                    {t.urgent && <Flame size={13} className="text-red-400 shrink-0" />}
-                    <span className="flex-1 truncate">{t.title}</span>
-                    <span className="text-xs shrink-0 text-slate-500">{t.dueDate}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </div>
 
