@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, AlertTriangle, Check, Clock, Flame, FolderKanban, Plus } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CalendarDays, Check, Clock, Flame, FolderKanban, Plus } from 'lucide-react';
 import type { useTasks } from '../hooks/useTasks';
 import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
@@ -136,9 +136,9 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const standaloneProjects = visibleProjects.filter((p) => !p.programId || !programIds.has(p.programId));
 
   // KPI 數據
-  const overdueTasks     = buckets.overdue.length;
-  const todayTasks       = buckets.today.length;
-  const overdueMilestones = countOverdueMilestones(visibleProjects, today);
+  const overdueTasks  = buckets.overdue.length;
+  const todayTasks    = buckets.today.length;
+  const weekTasks     = buckets.week.length;
 
   // 摘要句
   const summaryParts: string[] = [];
@@ -165,7 +165,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
         <KpiTile label="逾期任務"    value={overdueTasks}      icon={AlertCircle}  colorClass="text-red-400"     alertWhenPositive />
         <KpiTile label="今日待辦"    value={todayTasks}        icon={Clock}        colorClass="text-amber-400"   alertWhenPositive />
         <KpiTile label="進行中專案"  value={visibleProjects.length} icon={FolderKanban} colorClass="text-primary-400" />
-        <KpiTile label="逾期里程碑"  value={overdueMilestones} icon={AlertTriangle} colorClass="text-orange-400"  alertWhenPositive />
+        <KpiTile label="本週到期"    value={weekTasks}         icon={CalendarDays} colorClass="text-sky-400" />
       </div>
 
       {/* ── 主內容：左右欄 ── */}
