@@ -8,6 +8,7 @@ import Calendar from './views/Calendar';
 import KnowledgeBase from './views/KnowledgeBase';
 import Settings from './views/Settings';
 import TemplateManager from './views/TemplateManager';
+import Changelog from './views/Changelog';
 import { useProjects } from './hooks/useProjects';
 import { useTemplates } from './hooks/useTemplates';
 import { usePrograms } from './hooks/usePrograms';
@@ -17,7 +18,7 @@ import { useNotes } from './hooks/useNotes';
 import { useDocuments } from './hooks/useDocuments';
 import { useKnowledge } from './hooks/useKnowledge';
 
-export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'TEMPLATE_MANAGER' | 'SETTINGS';
+export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'TEMPLATE_MANAGER' | 'CHANGELOG' | 'SETTINGS';
 
 export default function App() {
   const [view, setView] = useState<ViewState>('DASHBOARD');
@@ -79,6 +80,7 @@ export default function App() {
         {view === 'CALENDAR' && <Calendar tasksApi={tasksApi} projectsApi={projectsApi} />}
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase knowledgeApi={knowledgeApi} />}
         {view === 'TEMPLATE_MANAGER' && <TemplateManager templatesApi={templatesApi} />}
+        {view === 'CHANGELOG' && <Changelog />}
         {view === 'SETTINGS' && <Settings />}
       </main>
 
