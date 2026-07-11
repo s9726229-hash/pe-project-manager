@@ -186,6 +186,15 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
           >
             <MessageSquare size={13} />
           </button>
+          {isStandalone && (
+            <button
+              onClick={() => setAddingSub(true)}
+              className="opacity-0 group-hover/row:opacity-100 transition-opacity text-slate-600 hover:text-primary-400 p-0.5"
+              title="新增子任務"
+            >
+              <Plus size={13} />
+            </button>
+          )}
           <button onClick={() => onDelete(task.id)}
             className="opacity-0 group-hover/row:opacity-100 transition-opacity text-slate-600 hover:text-red-400 p-0.5">
             <Trash2 size={14} />
@@ -203,6 +212,27 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
             value={task.notes ?? ''}
             onChange={(e) => updateField({ notes: e.target.value })}
           />
+        </div>
+      )}
+
+      {isStandalone && addingSub && (
+        <div className="flex items-center gap-2 px-3 pb-2 flex-wrap border-t border-slate-800 pt-2">
+          <input
+            autoFocus
+            className="bg-slate-800 rounded px-2 py-1 text-sm flex-1 min-w-[8rem] outline-none"
+            placeholder="子任務名稱"
+            value={newSubTitle}
+            onChange={(e) => setNewSubTitle(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submitSubTask()}
+          />
+          <input
+            type="date"
+            className="bg-slate-800 rounded px-2 py-1 text-xs w-36 outline-none"
+            value={newSubDate}
+            onChange={(e) => setNewSubDate(e.target.value)}
+          />
+          <button onClick={submitSubTask} className="text-sm text-primary-400 hover:text-primary-300 px-2">新增</button>
+          <button onClick={() => setAddingSub(false)} className="text-sm text-slate-500 hover:text-slate-300 px-1">取消</button>
         </div>
       )}
     </div>

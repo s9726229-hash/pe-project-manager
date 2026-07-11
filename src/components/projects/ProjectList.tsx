@@ -29,7 +29,15 @@ function currentStageLabel(project: Project): string {
 
 function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: string) => void }) {
   return (
-    <table className="w-full text-sm">
+    <table className="w-full text-sm table-fixed">
+      <colgroup>
+        <col style={{ width: '15%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '9%' }} />
+        <col style={{ width: '44%' }} />
+        <col style={{ width: '12%' }} />
+      </colgroup>
       <thead className="bg-slate-900 text-slate-400 text-xs">
         <tr>
           <th className="text-left px-4 py-2">小專案名稱</th>
@@ -37,29 +45,32 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
           <th className="text-left px-4 py-2">產品等級</th>
           <th className="text-left px-4 py-2">狀態</th>
           <th className="text-left px-4 py-2">目前階段</th>
-          <th className="text-left px-4 py-2">進度%</th>
+          <th className="text-right px-4 py-2">進度%</th>
         </tr>
       </thead>
       <tbody>
-        {projects.map((p) => (
-          <tr key={p.id} className="border-t border-slate-800 hover:bg-slate-900/60 cursor-pointer" onClick={() => onOpen(p.id)}>
-            <td className="px-4 py-3 font-medium">{p.name}</td>
-            <td className="px-4 py-3 text-slate-400">{p.productLine || '—'}</td>
-            <td className="px-4 py-3 text-slate-400">{p.grade || '—'}</td>
-            <td className="px-4 py-3">
-              <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[p.status]}`}>{p.status}</span>
-            </td>
-            <td className="px-4 py-3 text-slate-400">{currentStageLabel(p)}</td>
-            <td className="px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden shrink-0">
-                  <div className="h-full bg-primary-500 rounded-full" style={{ width: `${computeProgressPercent(p.milestones)}%` }} />
+        {projects.map((p) => {
+          const pct = computeProgressPercent(p.milestones);
+          return (
+            <tr key={p.id} className="border-t border-slate-800 hover:bg-slate-900/60 cursor-pointer" onClick={() => onOpen(p.id)}>
+              <td className="px-4 py-3 font-medium truncate">{p.name}</td>
+              <td className="px-4 py-3 text-slate-400 truncate">{p.productLine || '—'}</td>
+              <td className="px-4 py-3 text-slate-400 truncate">{p.grade || '—'}</td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[p.status]}`}>{p.status}</span>
+              </td>
+              <td className="px-4 py-3 text-slate-400 truncate" title={currentStageLabel(p)}>{currentStageLabel(p)}</td>
+              <td className="px-4 py-3">
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-xs text-slate-400 tabular-nums w-7 text-right">{pct}%</span>
+                  <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden shrink-0">
+                    <div className="h-full bg-primary-500 rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
-                <span className="text-xs text-slate-400">{computeProgressPercent(p.milestones)}%</span>
-              </div>
-            </td>
-          </tr>
-        ))}
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
