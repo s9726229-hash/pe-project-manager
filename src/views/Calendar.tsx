@@ -5,16 +5,20 @@ import type { useProjects } from '../hooks/useProjects';
 import { DEFAULT_PROJECT_ID } from '../hooks/useProjects';
 import { flattenTaskLeaves } from '../services/taskUtils';
 import { flattenLeaves } from '../services/milestoneUtils';
+import type { ViewState } from '../App';
 
 interface CalendarProps {
   tasksApi: ReturnType<typeof useTasks>;
   projectsApi: ReturnType<typeof useProjects>;
+  onNavigate: (view: ViewState) => void;
+  onOpenProject: (id: string) => void;
 }
 
 interface CalendarEntry {
   kind: 'task' | 'milestone';
   label: string;
   projectName?: string;
+  projectId?: string;
   done: boolean;
 }
 
@@ -24,7 +28,7 @@ function toDateStr(year: number, month: number, day: number): string {
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
 
-export default function Calendar({ tasksApi, projectsApi }: CalendarProps) {
+export default function Calendar({ tasksApi, projectsApi, onNavigate, onOpenProject }: CalendarProps) {
   const { tasks } = tasksApi;
   const { projects } = projectsApi;
 
@@ -53,8 +57,16 @@ export default function Calendar({ tasksApi, projectsApi }: CalendarProps) {
     if (p.status === '取消') continue;
     for (const leaf of flattenLeaves(p.milestones)) {
       if (leaf.plannedDate) {
-        push(leaf.plannedDate, { kind: 'milestone', label: leaf.name, projectName: p.name, done: leaf.status === '已完成' });
+        push(leaf.plannedDate, { kind: 'milestone', label: leaf.name, projectName: p.name, projectId: p.id, done: leaf.status === '已完成' });
       }
+    }
+  }
+
+  function handleEntryClick(e: CalendarEntry) {
+    if (e.kind === 'task') {
+      onNavigate('TASKS');
+    } else if (e.projectId) {
+      onOpenProject(e.projectId);
     }
   }
 
@@ -122,9 +134,10 @@ export default function Calendar({ tasksApi, projectsApi }: CalendarProps) {
               <div className={`text-xs mb-1 ${isToday ? 'text-primary-400 font-semibold' : 'text-slate-500'}`}>{day}</div>
               <div className="space-y-0.5">
                 {entries.slice(0, 4).map((e, j) => (
-                  <div
+                  <button
                     key={j}
-                    className={`text-[11px] leading-tight px-1 py-0.5 rounded truncate ${
+                    onClick={() => handleEntryClick(e)}
+                    className={`w-full text-left text-[11px] leading-tight px-1 py-0.5 rounded truncate transition-opacity hover:opacity-75 ${
                       e.done
                         ? 'text-slate-600 line-through'
                         : e.kind === 'task'
@@ -134,7 +147,7 @@ export default function Calendar({ tasksApi, projectsApi }: CalendarProps) {
                     title={e.projectName ? `${e.projectName}：${e.label}` : e.label}
                   >
                     {e.label}
-                  </div>
+                  </button>
                 ))}
                 {entries.length > 4 && <div className="text-[10px] text-slate-500 px-1">+{entries.length - 4} 更多</div>}
               </div>

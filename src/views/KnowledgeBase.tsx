@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { useKnowledge } from '../hooks/useKnowledge';
 import { estimateWidthCh } from '../services/textWidth';
@@ -13,6 +13,8 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const [focusTitle, setFocusTitle] = useState(false);
 
   const activeCategoryId = selectedCategoryId ?? categories[0]?.id ?? null;
   const notesInCategory = notes.filter((n) => n.categoryId === activeCategoryId);
@@ -24,10 +26,18 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
     setNewCategoryName('');
   }
 
+  useEffect(() => {
+    if (focusTitle) {
+      titleInputRef.current?.select();
+      setFocusTitle(false);
+    }
+  }, [focusTitle, selectedNoteId]);
+
   function handleAddNote() {
     if (!activeCategoryId) return;
     const id = addNote(activeCategoryId, '', '（新筆記）');
     setSelectedNoteId(id);
+    setFocusTitle(true);
   }
 
   function handleDeleteNote(id: string) {
@@ -113,8 +123,13 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
                   onClick={() => setSelectedNoteId(n.id)}
                   className={`w-full text-left px-3 py-3 border-b border-slate-800 hover:bg-slate-800 transition-colors ${isActive ? 'bg-slate-800 border-l-2 border-l-primary-500' : ''}`}
                 >
-                  <div className="text-sm font-medium truncate text-slate-200">
-                    {n.title || '（無標題）'}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium truncate text-slate-200 flex-1">
+                      {n.title || '（無標題）'}
+                    </span>
+                    {(!n.title || n.title === '（新筆記）') && !n.content && (
+                      <span className="text-[10px] text-amber-500 shrink-0">未填</span>
+                    )}
                   </div>
                   <div className="text-xs text-slate-500 truncate mt-0.5">
                     {n.content.replace(/\n/g, ' ').slice(0, 60)}
@@ -135,9 +150,10 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
             <>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800">
                 <input
+                  ref={titleInputRef}
                   className="flex-1 bg-transparent text-base font-semibold outline-none text-slate-100"
-                  value={selectedNote.title ?? ''}
-                  placeholder="（無標題）"
+                  value={selectedNote.title === '（新筆記）' ? '' : (selectedNote.title ?? '')}
+                  placeholder="輸入標題..."
                   onChange={(e) => updateNote(selectedNote.id, { title: e.target.value })}
                 />
                 <button

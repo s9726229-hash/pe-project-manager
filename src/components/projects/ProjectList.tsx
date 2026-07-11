@@ -50,7 +50,14 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
               <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[p.status]}`}>{p.status}</span>
             </td>
             <td className="px-4 py-3 text-slate-400">{currentStageLabel(p)}</td>
-            <td className="px-4 py-3 text-slate-400">{computeProgressPercent(p.milestones)}%</td>
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden shrink-0">
+                  <div className="h-full bg-primary-500 rounded-full" style={{ width: `${computeProgressPercent(p.milestones)}%` }} />
+                </div>
+                <span className="text-xs text-slate-400">{computeProgressPercent(p.milestones)}%</span>
+              </div>
+            </td>
           </tr>
         ))}
       </tbody>

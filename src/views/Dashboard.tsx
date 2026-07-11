@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Flame, Plus } from 'lucide-react';
+import { AlertTriangle, Check, Flame, Plus } from 'lucide-react';
 import type { useTasks } from '../hooks/useTasks';
 import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
@@ -41,6 +41,11 @@ function getBucket(dueDate: string | undefined, today: string, weekEnd: string):
   if (dueDate === today) return 'today';
   if (dueDate <= weekEnd) return 'week';
   return 'later';
+}
+
+function countOverdueMilestones(projects: Project[], today: string): number {
+  return projects.flatMap((p) => flattenLeaves(p.milestones))
+    .filter((l) => l.status !== '已完成' && l.plannedDate && l.plannedDate < today).length;
 }
 
 function computeCombinedProgress(projects: Project[]): number {
@@ -116,7 +121,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
 
             <div className="space-y-4">
               {BUCKET_ORDER.filter((b) => buckets[b].length > 0).map((b, i) => (
-                <div key={b}>
+                <div key={b} className={b === 'overdue' ? 'border-l-2 border-red-500/50 pl-2 -ml-1' : ''}>
                   <div className={`flex items-center gap-2 mb-2 ${i > 0 ? 'pt-3 border-t border-slate-800' : ''}`}>
                     <span className={`text-xs font-semibold ${BUCKET_META[b].color}`}>{BUCKET_META[b].label}</span>
                     <span className="text-xs text-slate-600">{buckets[b].length} 件</span>
@@ -172,6 +177,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
           {programCards.map(({ program, items }) => {
             const progress = computeCombinedProgress(items);
             const nextDate = combinedNextMilestoneDate(items);
+            const overdueCount = countOverdueMilestones(items, today);
             return (
               <div key={program.id} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -185,6 +191,12 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                   <span>整體 {progress}%</span>
                   {nextDate && <span>下一里程碑 {nextDate}</span>}
                 </div>
+                {overdueCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-red-400 mb-2">
+                    <AlertTriangle size={12} />
+                    <span>{overdueCount} 個里程碑逾期</span>
+                  </div>
+                )}
                 <div className="space-y-1 border-t border-slate-800 pt-2">
                   {items.map((p) => {
                     const stage = getCurrentStage(p.milestones);
@@ -218,6 +230,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
             const stage = getCurrentStage(p.milestones);
             const pct = computeProgressPercent(p.milestones);
             const nextDate = getNextMilestoneDate(p.milestones);
+            const overdueCount = countOverdueMilestones([p], today);
             return (
               <button
                 key={p.id}
@@ -237,6 +250,12 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                   <span>{pct}% 完成</span>
                   <span className="text-slate-600">{stage?.name ?? '—'}</span>
                 </div>
+                {overdueCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-red-400 mt-2">
+                    <AlertTriangle size={12} />
+                    <span>{overdueCount} 個里程碑逾期</span>
+                  </div>
+                )}
                 {nextDate && (
                   <div className="mt-2 pt-2 border-t border-slate-800 text-xs text-slate-500">
                     下一里程碑 <span className="text-slate-400">{nextDate}</span>

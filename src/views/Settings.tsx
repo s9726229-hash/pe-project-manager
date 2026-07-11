@@ -1,10 +1,22 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { exportBackup, importBackup } from '../services/backup';
+import { STORAGE_KEYS } from '../services/storage';
+
+function getCount(key: string): number {
+  try { return (JSON.parse(localStorage.getItem('pe-pm:' + key) ?? '[]') as unknown[]).length; } catch { return 0; }
+}
 
 export default function Settings() {
   const [importStatus, setImportStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const stats = [
+    { label: '專案', value: Math.max(0, getCount(STORAGE_KEYS.projects) - 1) },
+    { label: '待辦事項', value: getCount(STORAGE_KEYS.tasks) },
+    { label: '案件', value: getCount(STORAGE_KEYS.cases) },
+    { label: '知識庫筆記', value: getCount(STORAGE_KEYS.knowledgeNotes) },
+  ];
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -24,6 +36,23 @@ export default function Settings() {
     <div>
       <h1 className="text-2xl font-semibold mb-2">設定</h1>
       <p className="text-slate-400 mb-6 text-sm">應用程式設定與資料管理。</p>
+
+      {/* 關於 */}
+      <section className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl max-w-lg mb-4">
+        <h2 className="text-sm font-semibold text-slate-300 mb-3">關於</h2>
+        <div className="flex items-baseline gap-2 mb-3">
+          <span className="text-slate-200 font-medium">PE Project Manager</span>
+          <span className="text-xs text-slate-500 font-mono">v1.0</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          {stats.map((s) => (
+            <div key={s.label} className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+              <div className="text-xl font-semibold text-slate-100">{s.value}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* 資料備份 */}
       <section className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl max-w-lg">

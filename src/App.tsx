@@ -77,7 +77,7 @@ export default function App() {
           />
         )}
         {view === 'TASKS' && <Tasks tasksApi={tasksApi} projectsApi={projectsApi} />}
-        {view === 'CALENDAR' && <Calendar tasksApi={tasksApi} projectsApi={projectsApi} />}
+        {view === 'CALENDAR' && <Calendar tasksApi={tasksApi} projectsApi={projectsApi} onNavigate={setView} onOpenProject={openProject} />}
         {view === 'KNOWLEDGE_BASE' && <KnowledgeBase knowledgeApi={knowledgeApi} />}
         {view === 'TEMPLATE_MANAGER' && <TemplateManager templatesApi={templatesApi} />}
         {view === 'CHANGELOG' && <Changelog />}
