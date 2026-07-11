@@ -19,12 +19,6 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function computeCombinedProgress(projects: Project[]): number {
   const leaves = projects.flatMap((p) => flattenLeaves(p.milestones));
   if (leaves.length === 0) return 0;
@@ -50,30 +44,12 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const { programs } = programsApi;
 
   const today = todayIso();
-  const twoWeeksOut = addDays(today, 14);
-
   // ── 待辦 ──
   const pendingTasks = flattenTaskLeaves(tasks)
     .filter((t) => t.dueDate && t.status !== '已完成')
     .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
   const todayTasks    = pendingTasks.filter((t) => t.dueDate! <= today);
   const upcomingTasks = pendingTasks.filter((t) => t.dueDate! > today);
-
-  // ── 近期里程碑（14 天內，未完成） ──
-  const activeForMilestones = projects.filter((p) => p.id !== DEFAULT_PROJECT_ID && p.status !== '取消' && p.status !== '已完成');
-  interface MilestoneHit { projectName: string; milestoneName: string; date: string; overdue: boolean; }
-  const upcomingMilestones: MilestoneHit[] = activeForMilestones
-    .flatMap((p) =>
-      flattenLeaves(p.milestones)
-        .filter((l) => l.status !== '已完成' && l.plannedDate && l.plannedDate <= twoWeeksOut)
-        .map((l) => ({
-          projectName: p.name,
-          milestoneName: l.name,
-          date: l.plannedDate!,
-          overdue: l.plannedDate! < today,
-        }))
-    )
-    .sort((a, b) => a.date.localeCompare(b.date));
 
   // ── 專案卡片：顯示 進行中 + 暫停，不含 取消/已完成 ──
   const visibleProjects = projects.filter(
@@ -93,10 +69,8 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
     <div>
       <h1 className="text-2xl font-semibold mb-4">Dashboard</h1>
 
-      {/* ── 上方兩欄：待辦 + 近期里程碑 ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-
-        {/* 今日待辦 */}
+      {/* ── 待辦 ── */}
+      <div className="mb-6">
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-slate-300">今日待辦</h2>
@@ -132,29 +106,6 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
               </div>
             </>
           )}
-        </div>
-
-        {/* 近期里程碑 */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-300">近期里程碑</h2>
-            <span className="text-xs text-slate-500">14 天內</span>
-          </div>
-
-          {upcomingMilestones.length === 0 && <p className="text-slate-500 text-sm">未來 14 天沒有到期里程碑。</p>}
-
-          <div className="space-y-1">
-            {upcomingMilestones.slice(0, 10).map((m, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm py-1">
-                <span className={`text-xs shrink-0 mt-0.5 font-mono ${m.overdue ? 'text-red-400' : 'text-slate-500'}`}>{m.date}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-slate-200">{m.milestoneName}</div>
-                  <div className="text-xs text-slate-500 truncate">{m.projectName}</div>
-                </div>
-                {m.overdue && <span className="text-xs text-red-400 shrink-0">逾期</span>}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
