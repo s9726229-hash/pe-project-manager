@@ -3,9 +3,9 @@ import { AlertCircle, AlertTriangle, CalendarDays, Check, Clock, Flame, FolderKa
 import type { useTasks } from '../hooks/useTasks';
 import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
-import type { Project } from '../types';
+import type { Project, Task } from '../types';
 import { DEFAULT_PROJECT_ID } from '../hooks/useProjects';
-import { flattenTaskLeaves } from '../services/taskUtils';
+import { flattenTaskLeaves, isParentTask } from '../services/taskUtils';
 import { computeProgressPercent, flattenLeaves, getCurrentStage, getNextMilestoneDate } from '../services/milestoneUtils';
 
 interface DashboardProps {
@@ -37,7 +37,7 @@ const BUCKET_META: Record<Bucket, { label: string; textColor: string; wrapClass:
   overdue: { label: '逾期',   textColor: 'text-red-400',    wrapClass: 'bg-red-500/8 border border-red-500/20 rounded-lg p-3' },
   today:   { label: '今天',   textColor: 'text-amber-400',  wrapClass: 'bg-amber-500/8 border border-amber-500/20 rounded-lg p-3' },
   week:    { label: '本週',   textColor: 'text-sky-400',    wrapClass: 'px-1' },
-  later:   { label: '之後',   textColor: 'text-slate-400',  wrapClass: 'px-1' },
+  later:   { label: '之後',   textColor: 'text-slate-400',  wrapClass: 'bg-slate-800/40 border border-slate-700/50 rounded-lg p-3' },
   none:    { label: '無期限', textColor: 'text-slate-500',  wrapClass: 'px-1' },
 };
 const BUCKET_ORDER: Bucket[] = ['overdue', 'today', 'week', 'later', 'none'];
@@ -48,6 +48,26 @@ function getBucket(dueDate: string | undefined, today: string, weekEnd: string):
   if (dueDate === today) return 'today';
   if (dueDate <= weekEnd) return 'week';
   return 'later';
+}
+
+interface RenderGroup { groupKey: string; parentTitle?: string; items: Task[]; }
+
+function buildRenderGroups(bucketTasks: Task[], allTasks: Task[]): RenderGroup[] {
+  const leafToParent = new Map<string, { id: string; title: string }>();
+  for (const t of allTasks) {
+    if (isParentTask(t)) {
+      for (const sub of t.subTasks!) leafToParent.set(sub.id, { id: t.id, title: t.title });
+    }
+  }
+  const groupOrder: string[] = [];
+  const groupMap = new Map<string, { parentTitle?: string; items: Task[] }>();
+  for (const leaf of bucketTasks) {
+    const parent = leafToParent.get(leaf.id);
+    const key = parent?.id ?? leaf.id;
+    if (!groupMap.has(key)) { groupOrder.push(key); groupMap.set(key, { parentTitle: parent?.title, items: [] }); }
+    groupMap.get(key)!.items.push(leaf);
+  }
+  return groupOrder.map((key) => ({ groupKey: key, ...groupMap.get(key)! }));
 }
 
 function countOverdueMilestones(projects: Project[], today: string): number {
@@ -169,10 +189,10 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
       </div>
 
       {/* ── 主內容：左右欄 ── */}
-      <div className="flex gap-6 items-start">
+      <div className="grid grid-cols-2 gap-6 items-start">
 
         {/* ── 左欄：待辦 ── */}
-        <div className="w-72 shrink-0">
+        <div>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
             待辦事項
             <span className="ml-2 text-slate-600 font-normal normal-case">{pendingTasks.length} 件</span>
@@ -192,20 +212,36 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                     </span>
                     <span className="text-[11px] text-slate-600">{buckets[b].length}</span>
                   </div>
-                  <div className="space-y-1">
-                    {buckets[b].map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 py-0.5 group/row">
-                        <button
-                          onClick={() => setStatus(t.id, '已完成')}
-                          className="w-4 h-4 rounded-full border border-slate-700 shrink-0 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group-hover/row:border-slate-500"
-                        >
-                          <Check size={10} className="text-emerald-400 opacity-0 group-hover/row:opacity-50 transition-opacity" />
-                        </button>
-                        {t.urgent && <Flame size={12} className="text-red-400 shrink-0" />}
-                        <span className="flex-1 truncate text-sm text-slate-300">{t.title}</span>
-                        <span className={`text-[11px] shrink-0 tabular-nums ${b === 'overdue' ? 'text-red-400' : 'text-slate-600'}`}>
-                          {t.dueDate?.slice(5) ?? '—'}
-                        </span>
+                  <div className="space-y-1.5">
+                    {buildRenderGroups(buckets[b], tasks).map((group) => (
+                      <div key={group.groupKey}>
+                        {group.parentTitle && (
+                          <div className="flex items-center gap-1.5 mt-1 mb-0.5">
+                            <div className="w-0.5 h-3 bg-slate-700 rounded-full shrink-0" />
+                            <span className="text-[10px] text-slate-600 font-semibold tracking-wide uppercase truncate">
+                              {group.parentTitle}
+                            </span>
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          {group.items.map((t) => (
+                            <div key={t.id} className="flex items-center gap-2 py-0.5 group/row">
+                              <button
+                                onClick={() => setStatus(t.id, '已完成')}
+                                className="w-4 h-4 rounded-full border border-slate-700 shrink-0 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group-hover/row:border-slate-500"
+                              >
+                                <Check size={10} className="text-emerald-400 opacity-0 group-hover/row:opacity-50 transition-opacity" />
+                              </button>
+                              <div className="w-3 shrink-0 flex items-center justify-center">
+                                {t.urgent && <Flame size={11} className="text-red-400" />}
+                              </div>
+                              <span className="flex-1 truncate text-sm text-slate-300">{t.title}</span>
+                              <span className={`text-[11px] shrink-0 tabular-nums ${b === 'overdue' ? 'text-red-400' : 'text-slate-600'}`}>
+                                {t.dueDate?.slice(5) ?? '—'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -227,7 +263,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
         </div>
 
         {/* ── 右欄：專案進度 ── */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
             專案進度
             <span className="ml-2 text-slate-600 font-normal normal-case">{visibleProjects.length} 個</span>
@@ -237,7 +273,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
             <p className="text-slate-500 text-sm">目前沒有進行中或暫停的專案。</p>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Program 群組卡 */}
             {programCards.map(({ program, items }) => {
@@ -282,10 +318,10 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                         <button
                           key={p.id}
                           onClick={() => onOpenProject(p.id)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/60 text-left group border-b border-slate-800/60 last:border-0 transition-colors"
+                          className="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-slate-800/60 text-left group border-b border-slate-800/60 last:border-0 transition-colors"
                         >
                           {/* mini 進度條 */}
-                          <div className="w-1 h-8 bg-slate-800 rounded-full overflow-hidden shrink-0">
+                          <div className="w-1 h-8 bg-slate-800 rounded-full overflow-hidden shrink-0 mt-0.5">
                             <div
                               className="rounded-full transition-all"
                               style={{ height: `${pct}%`, background: 'linear-gradient(180deg, #818cf8, #6366f1)' }}
@@ -294,6 +330,16 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-slate-200 group-hover:text-white truncate">{p.name}</div>
                             <div className="text-xs text-slate-500 mt-0.5">{stage?.name ?? '—'}</div>
+                            {stage?.subMilestones && stage.subMilestones.filter((s) => s.status !== '已完成').length > 0 && (
+                              <div className="mt-1 space-y-0.5">
+                                {stage.subMilestones.filter((s) => s.status !== '已完成').map((s) => (
+                                  <div key={s.id} className="flex items-center gap-1 text-[10px] text-slate-600">
+                                    <div className="w-1 h-1 rounded-full bg-slate-700 shrink-0" />
+                                    <span className="truncate">{s.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-sm font-semibold text-slate-300">{pct}%</div>
@@ -346,6 +392,17 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                       </span>
                     )}
                   </div>
+                  {stage?.subMilestones && stage.subMilestones.filter((s) => s.status !== '已完成').length > 0 && (
+                    <div className="mb-2 space-y-1">
+                      {stage.subMilestones.filter((s) => s.status !== '已完成').map((s) => (
+                        <div key={s.id} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                          <div className="w-1 h-1 rounded-full bg-slate-600 shrink-0" />
+                          <span className="truncate">{s.name}</span>
+                          {s.plannedDate && <span className="shrink-0 text-slate-600">{s.plannedDate.slice(5)}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {overdueCount > 0 && (
                     <div className="flex items-center gap-1 text-xs text-red-400 mb-1.5">
                       <AlertTriangle size={11} />
