@@ -51,13 +51,13 @@ export function useTasks() {
     );
   }
 
-  function addSubTask(parentId: string, title: string) {
+  function addSubTask(parentId: string, title: string, dueDate?: string) {
     setTasks((prev) =>
       updateTaskById(prev, parentId, (t) => ({
         ...t,
         subTasks: [
           ...(t.subTasks ?? []),
-          { id: newId(), projectId: t.projectId, title, status: '待辦' }
+          { id: newId(), projectId: t.projectId, title, status: '待辦', dueDate }
         ],
         // 一旦有子任務，父項目自己的狀態/到期日就不算數，改由子任務推算——跟 Milestone 群組規則一樣。
         dueDate: undefined,

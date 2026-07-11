@@ -66,6 +66,7 @@ export interface Task {
   id: string;
   projectId: string;
   title: string;
+  notes?: string;
   dueDate?: string;
   status?: TaskStatus;
   urgent?: boolean;

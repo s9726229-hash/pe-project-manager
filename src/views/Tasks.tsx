@@ -44,9 +44,10 @@ export default function Tasks({ tasksApi }: TasksProps) {
       <div className="sticky top-0 z-10 flex items-center gap-2 py-1.5 px-3 mb-2 text-xs text-slate-500 bg-slate-950/95 backdrop-blur">
         <div className="w-20 shrink-0">狀態</div>
         <div className="w-4 shrink-0" />
-        <div className="flex-1 min-w-[6rem]">待辦事項</div>
-        <div className="w-32 shrink-0">預計完成日</div>
+        <div className="flex-1 min-w-[6rem]">任務名稱</div>
+        <div className="w-32 shrink-0">完成日</div>
         <div className="w-14 shrink-0">急迫度</div>
+        <div className="w-8 shrink-0">備注</div>
         <div className="w-8 shrink-0" />
         <div className="w-8 shrink-0" />
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Flame, Plus, Trash2 } from 'lucide-react';
+import { Flame, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import type { Task } from '../../types';
 import { getEffectiveDueDate, getEffectiveStatus, isParentTask, isTaskUrgent } from '../../services/taskUtils';
 
@@ -7,7 +7,7 @@ interface TaskRowProps {
   task: Task;
   onChange: (task: Task) => void;
   onPostpone: (id: string, newDate: string) => void;
-  onAddSubTask: (parentId: string, title: string) => void;
+  onAddSubTask: (parentId: string, title: string, dueDate?: string) => void;
   onDelete: (id: string) => void;
   depth?: number;
 }
@@ -21,6 +21,8 @@ const STATUS_COLOR: Record<string, string> = {
 export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDelete, depth = 0 }: TaskRowProps) {
   const [addingSub, setAddingSub] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState('');
+  const [newSubDate, setNewSubDate] = useState('');
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const isParent = isParentTask(task);
   const effectiveStatus = getEffectiveStatus(task);
@@ -34,15 +36,16 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
 
   function submitSubTask() {
     if (!newSubTitle.trim()) return;
-    onAddSubTask(task.id, newSubTitle.trim());
+    onAddSubTask(task.id, newSubTitle.trim(), newSubDate || undefined);
     setNewSubTitle('');
+    setNewSubDate('');
     setAddingSub(false);
   }
 
   return (
     <div className={depth > 0 ? 'ml-6' : ''}>
       <div className={`flex items-center gap-2 py-2 px-3 rounded-lg ${depth === 0 ? 'bg-slate-900/60 border border-slate-800' : ''}`}>
-        {/* 狀態：葉節點可選，父項目顯示推算出來的唯讀徽章，寬度一致才會對齊 */}
+        {/* 狀態 */}
         <div className="w-20 shrink-0">
           {!isParent ? (
             <select
@@ -95,6 +98,17 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
           )}
         </div>
 
+        {/* 備注切換 */}
+        <div className="w-8 shrink-0 flex justify-center">
+          <button
+            onClick={() => setNotesOpen((v) => !v)}
+            className={`p-1 ${notesOpen || task.notes ? 'text-primary-400' : 'text-slate-600 hover:text-slate-400'}`}
+            title="備注"
+          >
+            <MessageSquare size={14} />
+          </button>
+        </div>
+
         <div className="w-8 shrink-0 flex justify-center">
           {depth === 0 && (
             <button onClick={() => setAddingSub((v) => !v)} className="text-slate-500 hover:text-primary-400 p-1" title="新增子任務">
@@ -109,18 +123,42 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
         </div>
       </div>
 
+      {/* 備注展開區 */}
+      {notesOpen && (
+        <div className={`mt-1 ${depth > 0 ? '' : 'mx-3'}`}>
+          <textarea
+            autoFocus
+            className="w-full bg-slate-800/60 border border-slate-700 rounded px-3 py-2 text-xs text-slate-300 outline-none resize-none"
+            rows={2}
+            placeholder="備注..."
+            value={task.notes ?? ''}
+            onChange={(e) => updateField({ notes: e.target.value })}
+          />
+        </div>
+      )}
+
+      {/* 新增子任務表單 */}
       {addingSub && (
-        <div className="flex items-center gap-2 mt-1 ml-6">
+        <div className="flex items-center gap-2 mt-1 ml-6 flex-wrap">
           <input
             autoFocus
-            className="bg-slate-800 rounded px-2 py-1 text-sm flex-1"
+            className="bg-slate-800 rounded px-2 py-1 text-sm flex-1 min-w-[8rem]"
             placeholder="子任務名稱"
             value={newSubTitle}
             onChange={(e) => setNewSubTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitSubTask()}
           />
+          <input
+            type="date"
+            className="bg-slate-800 rounded px-2 py-1 text-xs w-36"
+            value={newSubDate}
+            onChange={(e) => setNewSubDate(e.target.value)}
+          />
           <button onClick={submitSubTask} className="text-sm text-primary-400 hover:text-primary-300 px-2">
             新增
+          </button>
+          <button onClick={() => setAddingSub(false)} className="text-sm text-slate-500 hover:text-slate-300 px-1">
+            取消
           </button>
         </div>
       )}
