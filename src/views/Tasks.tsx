@@ -42,14 +42,10 @@ export default function Tasks({ tasksApi }: TasksProps) {
 
       {/* 欄位標題列，跟 TaskRow 的欄寬對齊；滾動時固定在頂端方便對照 */}
       <div className="sticky top-0 z-10 flex items-center gap-2 py-1.5 px-3 mb-2 text-xs text-slate-500 bg-slate-950/95 backdrop-blur">
-        <div className="w-20 shrink-0">狀態</div>
         <div className="w-4 shrink-0" />
+        <div className="w-20 shrink-0">狀態</div>
         <div className="flex-1 min-w-[6rem]">任務名稱</div>
-        <div className="w-32 shrink-0">完成日</div>
-        <div className="w-14 shrink-0">急迫度</div>
-        <div className="w-8 shrink-0">備注</div>
-        <div className="w-8 shrink-0" />
-        <div className="w-8 shrink-0" />
+        <div className="shrink-0 text-right">完成日 / 急件 / 備注</div>
       </div>
 
       {visibleTasks.length === 0 && <p className="text-slate-500 text-sm">目前沒有待辦事項。</p>}

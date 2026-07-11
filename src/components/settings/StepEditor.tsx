@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Link2, Plus, Trash2, X } from 'lucide-react';
 import type { TemplateStep } from '../../types';
 import { newId } from '../../services/storage';
 
@@ -26,18 +26,17 @@ function moveStep(steps: TemplateStep[], idx: number, dir: -1 | 1): TemplateStep
 }
 
 const PARALLEL_COLORS = ['#475569', '#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#f43f5e'];
-function parallelBorderColor(groupOrder: number): string {
+function parallelColor(groupOrder: number): string {
   return PARALLEL_COLORS[groupOrder % PARALLEL_COLORS.length] ?? '#475569';
 }
 
-// Group consecutive steps with same groupOrder for parallel visualization
-interface ParallelSegment {
+interface Segment {
   order: number;
   items: Array<{ step: TemplateStep; idx: number }>;
 }
 
-function buildSegments(steps: TemplateStep[]): ParallelSegment[] {
-  const segments: ParallelSegment[] = [];
+function buildSegments(steps: TemplateStep[]): Segment[] {
+  const segs: Segment[] = [];
   let i = 0;
   while (i < steps.length) {
     const s = steps[i];
@@ -46,10 +45,10 @@ function buildSegments(steps: TemplateStep[]): ParallelSegment[] {
       i++;
       group.push({ step: steps[i], idx: i });
     }
-    segments.push({ order: s.groupOrder, items: group });
+    segs.push({ order: s.groupOrder, items: group });
     i++;
   }
-  return segments;
+  return segs;
 }
 
 export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorProps) {
@@ -61,10 +60,6 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  }
-
-  function addStep() {
-    onChange([...steps, { id: newId(), name: '新步驟', groupOrder: (steps[steps.length - 1]?.groupOrder ?? 0) + 1 }]);
   }
 
   function addGroupStep() {
@@ -79,220 +74,265 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
     ]);
   }
 
-  function addChecklistItem(step: TemplateStep) {
-    onChange(updateStepAt(steps, step.id, { checklistItems: [...(step.checklistItems ?? []), ''] }));
+  function addTopLeaf() {
+    onChange([...steps, { id: newId(), name: '新步驟', groupOrder: (steps[steps.length - 1]?.groupOrder ?? 0) + 1 }]);
   }
 
-  function updateChecklistItem(step: TemplateStep, index: number, value: string) {
-    const items = [...(step.checklistItems ?? [])];
-    items[index] = value;
-    onChange(updateStepAt(steps, step.id, { checklistItems: items }));
+  function addSubStep(parent: TemplateStep) {
+    const subSteps = [
+      ...(parent.subSteps ?? []),
+      { id: newId(), name: '新子步驟', groupOrder: (parent.subSteps?.length ?? 0) + 1 }
+    ];
+    onChange(updateStepAt(steps, parent.id, { subSteps, checklistItems: undefined, durationDays: undefined }));
   }
 
-  function removeChecklistItem(step: TemplateStep, index: number) {
-    onChange(updateStepAt(steps, step.id, { checklistItems: (step.checklistItems ?? []).filter((_, i) => i !== index) }));
+  function handleGroupOrderChange(s: TemplateStep, newOrder: number, subSteps: TemplateStep[], onSubChange: (s: TemplateStep[]) => void) {
+    const updated = updateStepAt(subSteps, s.id, { groupOrder: newOrder });
+    onSubChange([...updated].sort((a, b) => a.groupOrder - b.groupOrder));
   }
 
-  function addSubStep(step: TemplateStep) {
-    const subSteps = [...(step.subSteps ?? []), { id: newId(), name: '新子步驟', groupOrder: (step.subSteps?.length ?? 0) + 1 }];
-    onChange(updateStepAt(steps, step.id, { subSteps, checklistItems: undefined, durationDays: undefined }));
-  }
-
-  function renderStep(s: TemplateStep, idx: number) {
-    const isGroup = !!s.subSteps && s.subSteps.length > 0;
-    const isCollapsed = collapsed.has(s.id);
-    const totalDays = isGroup ? (s.subSteps ?? []).reduce((acc, sub) => acc + (sub.durationDays ?? 0), 0) : null;
-    const accentColor = parallelBorderColor(s.groupOrder);
-
+  // ─── Leaf row (inside a group container) ───
+  function renderLeaf(
+    s: TemplateStep,
+    idx: number,
+    siblings: TemplateStep[],
+    onSibChange: (next: TemplateStep[]) => void
+  ) {
     return (
-      <div
-        key={s.id}
-        className="rounded-lg border border-slate-800 p-3 bg-slate-900/60 group/row"
-        style={{ borderLeft: `3px solid ${accentColor}` }}
-      >
-        {/* Header row */}
-        <div className="flex items-center gap-1.5">
-          {/* Move up/down */}
+      <div key={s.id}>
+        {/* Step row */}
+        <div className="flex items-center gap-1.5 px-3 py-2.5 group/row hover:bg-slate-800/30 transition-colors">
+          {/* Move buttons */}
           <div className="flex flex-col shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
             <button
-              onClick={() => onChange(moveStep(steps, idx, -1))}
+              onClick={() => onSibChange(moveStep(siblings, idx, -1))}
               disabled={idx === 0}
-              className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5"
-              title="上移"
+              className="text-slate-600 hover:text-slate-300 disabled:opacity-20 p-0.5"
             >
               <ArrowUp size={11} />
             </button>
             <button
-              onClick={() => onChange(moveStep(steps, idx, 1))}
-              disabled={idx === steps.length - 1}
-              className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5"
-              title="下移"
+              onClick={() => onSibChange(moveStep(siblings, idx, 1))}
+              disabled={idx === siblings.length - 1}
+              className="text-slate-600 hover:text-slate-300 disabled:opacity-20 p-0.5"
             >
               <ArrowDown size={11} />
             </button>
           </div>
 
-          {isGroup ? (
-            <button onClick={() => toggleCollapsed(s.id)} className="text-slate-400 hover:text-slate-200 shrink-0">
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-            </button>
-          ) : (
-            <span className="w-4 shrink-0" />
-          )}
-
+          {/* Name */}
           <input
-            className="flex-1 min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-slate-200 placeholder:text-slate-600"
             value={s.name}
-            onChange={(e) => onChange(updateStepAt(steps, s.id, { name: e.target.value }))}
+            onChange={(e) => onSibChange(updateStepAt(siblings, s.id, { name: e.target.value }))}
             placeholder="步驟名稱"
           />
 
-          {/* Right-aligned controls */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <label className="text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
-              並行群組
+          {/* Right badges */}
+          <div className="flex items-center gap-2 shrink-0 text-xs text-slate-500 font-mono">
+            <span className="flex items-center gap-0.5 whitespace-nowrap">
+              [<Link2 size={10} className="inline shrink-0" />群組&thinsp;
               <input
                 type="number"
-                className="w-12 bg-slate-800 rounded px-2 py-1 text-sm"
+                className="w-5 bg-transparent outline-none text-slate-400 [appearance:textfield] text-xs"
                 value={s.groupOrder}
-                onChange={(e) => {
-                  const newOrder = Number(e.target.value);
-                  // Sort by new groupOrder so same-order items become consecutive → auto-group
-                  const updated = updateStepAt(steps, s.id, { groupOrder: newOrder });
-                  onChange([...updated].sort((a, b) => a.groupOrder - b.groupOrder));
-                }}
+                onChange={(e) => handleGroupOrderChange(s, Number(e.target.value), siblings, onSibChange)}
+              />]
+            </span>
+            <span className="flex items-center gap-0.5 whitespace-nowrap">
+              [工期&thinsp;
+              <input
+                type="number"
+                className="w-6 bg-transparent outline-none text-slate-400 [appearance:textfield] text-xs"
+                value={s.durationDays ?? ''}
+                placeholder="?"
+                onChange={(e) =>
+                  onSibChange(updateStepAt(siblings, s.id, { durationDays: e.target.value === '' ? undefined : Number(e.target.value) }))
+                }
               />
-            </label>
-            {!isGroup && (
-              <label className="text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
-                工期(天)
-                <input
-                  type="number"
-                  className="w-14 bg-slate-800 rounded px-2 py-1 text-sm"
-                  value={s.durationDays ?? ''}
-                  onChange={(e) =>
-                    onChange(updateStepAt(steps, s.id, { durationDays: e.target.value === '' ? undefined : Number(e.target.value) }))
-                  }
-                />
-              </label>
-            )}
-            {isGroup && totalDays !== null && totalDays > 0 && (
-              <span className="text-xs text-slate-500 whitespace-nowrap">共 {totalDays} 天</span>
-            )}
+              天]
+            </span>
             <button
-              onClick={() => onChange(removeStepAt(steps, s.id))}
-              className="text-slate-500 hover:text-red-400 p-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
-              title="刪除步驟"
+              onClick={() => onSibChange(removeStepAt(siblings, s.id))}
+              className="opacity-0 group-hover/row:opacity-100 transition-opacity text-slate-600 hover:text-red-400 p-0.5"
             >
-              <Trash2 size={16} />
+              <Trash2 size={13} />
             </button>
           </div>
         </div>
 
-        {/* Body (collapsible for groups) */}
-        {!isCollapsed && (
-          <>
-            {isGroup && (
-              <p className="text-xs text-slate-600 mt-2 ml-5">分組容器，狀態由子步驟推算。</p>
-            )}
-
-            {!isGroup && (
-              <div className="mt-2 space-y-1">
-                {(s.checklistItems ?? []).map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 ml-12">
-                    <span className="text-slate-500 text-xs">☐</span>
-                    <input
-                      className="flex-1 bg-slate-800/60 rounded px-2 py-1 text-xs"
-                      value={item}
-                      onChange={(e) => updateChecklistItem(s, i, e.target.value)}
-                      placeholder="checklist 項目"
-                    />
-                    <button onClick={() => removeChecklistItem(s, i)} className="text-slate-500 hover:text-red-400">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+        {/* Checklist (indented) */}
+        {(s.checklistItems ?? []).length > 0 && (
+          <div className="ml-12 px-3 pb-2 space-y-1">
+            {(s.checklistItems ?? []).map((item, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
+                <span>☐</span>
+                <input
+                  className="flex-1 bg-slate-800/50 rounded px-2 py-1 outline-none"
+                  value={item}
+                  onChange={(e) => {
+                    const items = [...(s.checklistItems ?? [])];
+                    items[i] = e.target.value;
+                    onSibChange(updateStepAt(siblings, s.id, { checklistItems: items }));
+                  }}
+                  placeholder="checklist 項目"
+                />
                 <button
-                  onClick={() => addChecklistItem(s)}
-                  className="text-xs text-primary-400 hover:text-primary-300 ml-12 flex items-center gap-1"
+                  onClick={() => {
+                    const items = (s.checklistItems ?? []).filter((_, j) => j !== i);
+                    onSibChange(updateStepAt(siblings, s.id, { checklistItems: items }));
+                  }}
+                  className="text-slate-600 hover:text-red-400"
                 >
-                  <Plus size={12} /> 新增 checklist 項目
+                  <X size={12} />
                 </button>
               </div>
-            )}
+            ))}
+          </div>
+        )}
+        <button
+          onClick={() => {
+            const items = [...(s.checklistItems ?? []), ''];
+            onSibChange(updateStepAt(siblings, s.id, { checklistItems: items }));
+          }}
+          className="text-xs text-slate-600 hover:text-primary-400 ml-12 px-3 pb-2 flex items-center gap-1"
+        >
+          <Plus size={11} /> 新增 checklist 項目
+        </button>
+      </div>
+    );
+  }
 
-            {s.subSteps && s.subSteps.length > 0 && (
-              <div className="mt-3 ml-5 pl-3 border-l-2 border-slate-700/40">
-                <StepEditor
-                  steps={s.subSteps}
-                  onChange={(subSteps) => onChange(updateStepAt(steps, s.id, { subSteps }))}
-                  depth={depth + 1}
-                />
-              </div>
-            )}
+  // ─── Group container ───
+  function renderGroup(s: TemplateStep, idx: number) {
+    const isCollapsed = collapsed.has(s.id);
+    const subSteps = s.subSteps ?? [];
+    const totalDays = subSteps.reduce((acc, sub) => acc + (sub.durationDays ?? 0), 0);
+    const subSegs = buildSegments(subSteps);
+    const accentColor = parallelColor(s.groupOrder);
 
-            {depth === 0 && !isGroup && (
+    function onSubChange(next: TemplateStep[]) {
+      onChange(updateStepAt(steps, s.id, { subSteps: next }));
+    }
+
+    return (
+      <div key={s.id} className="rounded-lg overflow-hidden border border-slate-700/60">
+        {/* Header */}
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 bg-slate-800 cursor-pointer select-none group/hdr"
+          onClick={() => toggleCollapsed(s.id)}
+        >
+          <button className="text-slate-400 hover:text-slate-200 shrink-0" onClick={(e) => { e.stopPropagation(); toggleCollapsed(s.id); }}>
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: accentColor }} />
+          <input
+            className="flex-1 font-semibold bg-transparent outline-none text-slate-100 cursor-text text-sm"
+            value={s.name}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => onChange(updateStepAt(steps, s.id, { name: e.target.value }))}
+            placeholder="群組名稱"
+          />
+          {totalDays > 0 && (
+            <span className="text-xs text-slate-400 bg-slate-700 rounded px-2 py-0.5 shrink-0">共 {totalDays} 天</span>
+          )}
+          {/* Move + Delete (hover) */}
+          <div className="flex items-center gap-1 opacity-0 group-hover/hdr:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => onChange(moveStep(steps, idx, -1))} disabled={idx === 0} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
+              <ArrowUp size={12} />
+            </button>
+            <button onClick={() => onChange(moveStep(steps, idx, 1))} disabled={idx === steps.length - 1} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
+              <ArrowDown size={12} />
+            </button>
+            <button onClick={() => onChange(removeStepAt(steps, s.id))} className="text-slate-500 hover:text-red-400 p-0.5">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        {!isCollapsed && (
+          <div className="bg-slate-900/60 divide-y divide-slate-800/60">
+            {subSegs.map((seg) => {
+              const isParallel = seg.items.length > 1;
+              const color = parallelColor(seg.order);
+
+              if (!isParallel) {
+                const { step: sub, idx: subIdx } = seg.items[0];
+                return renderLeaf(sub, subIdx, subSteps, onSubChange);
+              }
+
+              // Parallel group separator
+              return (
+                <div key={`pg-${seg.order}`}>
+                  <div className="flex items-center gap-2 px-4 py-1.5">
+                    <div className="flex-1 h-px" style={{ background: color, opacity: 0.3 }} />
+                    <span className="text-xs whitespace-nowrap" style={{ color, opacity: 0.9 }}>⇉ 並行啟動</span>
+                    <div className="flex-1 h-px" style={{ background: color, opacity: 0.3 }} />
+                  </div>
+                  {seg.items.map(({ step: sub, idx: subIdx }) => renderLeaf(sub, subIdx, subSteps, onSubChange))}
+                  <div className="flex items-center gap-2 px-4 py-1">
+                    <div className="flex-1 h-px" style={{ background: color, opacity: 0.15 }} />
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add sub-step */}
+            <div className="px-3 py-2">
               <button
                 onClick={() => addSubStep(s)}
-                className="text-xs text-slate-500 hover:text-primary-400 mt-2 ml-5 flex items-center gap-1"
+                className="text-xs text-slate-500 hover:text-primary-400 flex items-center gap-1"
               >
-                <Plus size={12} /> 新增子步驟
+                <Plus size={12} /> 新增步驟
               </button>
-            )}
-          </>
+            </div>
+          </div>
         )}
       </div>
     );
   }
 
-  const segments = buildSegments(steps);
+  // ─── Top-level render ───
+  const topSegs = buildSegments(steps);
 
   return (
     <div className="space-y-2">
-      {segments.map((seg) => {
-        const isParallel = seg.items.length > 1;
-        const accentColor = parallelBorderColor(seg.order);
-
-        if (!isParallel) {
-          const { step, idx } = seg.items[0];
-          return renderStep(step, idx);
+      {topSegs.map((seg) => {
+        // Top-level usually each group has unique order; single item = render as group or leaf
+        if (seg.items.length === 1) {
+          const { step: s, idx } = seg.items[0];
+          if (s.subSteps && s.subSteps.length > 0) return renderGroup(s, idx);
+          // Top-level leaf (rare)
+          return renderLeaf(s, idx, steps, onChange);
         }
-
-        // Parallel group wrapper with bracket + label
+        // Top-level parallel (very rare but supported)
+        const color = parallelColor(seg.order);
         return (
-          <div key={`pg-${seg.order}`} className="relative pl-3">
-            {/* Left bracket line */}
-            <div
-              className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full"
-              style={{ background: accentColor, opacity: 0.6 }}
-            />
-            {/* Top connector + label */}
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-3 h-px" style={{ background: accentColor, opacity: 0.6 }} />
-              <span className="text-xs px-1.5 py-0.5 rounded-full border whitespace-nowrap" style={{ color: accentColor, borderColor: accentColor + '60', background: accentColor + '18' }}>
-                ⇉ 並行啟動
-              </span>
+          <div key={`tpg-${seg.order}`} className="relative pl-3">
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-full" style={{ background: color, opacity: 0.6 }} />
+            <div className="flex items-center gap-2 mb-1.5 text-xs" style={{ color }}>
+              <div className="w-3 h-px" style={{ background: color, opacity: 0.6 }} />
+              ⇉ 並行啟動
             </div>
             <div className="space-y-2">
-              {seg.items.map(({ step, idx }) => renderStep(step, idx))}
-            </div>
-            {/* Bottom connector */}
-            <div className="flex items-center gap-2 mt-1.5">
-              <div className="w-3 h-px" style={{ background: accentColor, opacity: 0.6 }} />
+              {seg.items.map(({ step: s, idx }) =>
+                s.subSteps && s.subSteps.length > 0 ? renderGroup(s, idx) : renderLeaf(s, idx, steps, onChange)
+              )}
             </div>
           </div>
         );
       })}
 
       <div className="flex items-center gap-4 pt-1">
-        <button onClick={addStep} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
-          <Plus size={14} /> 新增步驟
-        </button>
         {depth === 0 && (
           <button onClick={addGroupStep} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
             <Plus size={14} /> 新增群組
           </button>
         )}
+        <button onClick={addTopLeaf} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
+          <Plus size={14} /> 新增步驟
+        </button>
       </div>
     </div>
   );

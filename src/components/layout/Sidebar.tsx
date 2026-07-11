@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, CheckSquare, CalendarDays, BookOpen, Settings as SettingsIcon, Search } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, CheckSquare, CalendarDays, BookOpen, FileStack, Settings as SettingsIcon, Search } from 'lucide-react';
 import type { ViewState } from '../../App';
 
 interface NavItem {
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { view: 'TASKS', label: '待辦事項', icon: CheckSquare },
   { view: 'CALENDAR', label: '行事曆', icon: CalendarDays },
   { view: 'KNOWLEDGE_BASE', label: '知識庫', icon: BookOpen },
+  { view: 'TEMPLATE_MANAGER', label: '範本管理', icon: FileStack },
   { view: 'SETTINGS', label: '設定', icon: SettingsIcon }
 ];
 
