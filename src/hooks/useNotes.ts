@@ -25,5 +25,9 @@ export function useNotes() {
     });
   }
 
-  return { notes, saveNote };
+  function deleteNotesByProject(projectId: string) {
+    setNotes((prev) => prev.filter((n) => n.projectId !== projectId));
+  }
+
+  return { notes, saveNote, deleteNotesByProject };
 }

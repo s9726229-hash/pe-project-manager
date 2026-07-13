@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import type { Case, Note, Program, Project, ProjectDocument, Template, TemplateCategory } from '../../types';
 import ScheduleTab from './ScheduleTab';
 import CaseList from '../cases/CaseList';
@@ -13,6 +13,7 @@ interface ProjectDetailProps {
   programs: Program[];
   onAddProgram: (name: string) => string;
   onBack: () => void;
+  onDelete: (id: string) => void;
   onUpdateProject: (id: string, patch: Partial<Project>) => void;
   onUpdateMilestones: (projectId: string, milestones: Project['milestones']) => void;
   cases: Case[];
@@ -45,6 +46,7 @@ export default function ProjectDetail({
   programs,
   onAddProgram,
   onBack,
+  onDelete,
   onUpdateProject,
   onUpdateMilestones,
   cases,
@@ -61,6 +63,7 @@ export default function ProjectDetail({
   onDeleteDocument
 }: ProjectDetailProps) {
   const [tab, setTab] = useState<Tab>('SCHEDULE');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [creatingProgram, setCreatingProgram] = useState(false);
   const [newProgramName, setNewProgramName] = useState('');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -93,9 +96,22 @@ export default function ProjectDetail({
 
   return (
     <div>
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4">
-        <ArrowLeft size={16} /> 返回專案列表
-      </button>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200">
+          <ArrowLeft size={16} /> 返回專案列表
+        </button>
+        {confirmDelete ? (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-400">確認刪除此專案？</span>
+            <button onClick={() => onDelete(project.id)} className="text-red-400 hover:text-red-300">確認</button>
+            <button onClick={() => setConfirmDelete(false)} className="text-slate-500 hover:text-slate-300">取消</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1 text-sm text-slate-600 hover:text-red-400 transition-colors">
+            <Trash2 size={14} /> 刪除專案
+          </button>
+        )}
+      </div>
 
       {/* Meta Block — 緊湊化 */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3 mb-6 space-y-2">

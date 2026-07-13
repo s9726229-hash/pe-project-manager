@@ -31,5 +31,9 @@ export function useDocuments() {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
   }
 
-  return { documents, addDocument, updateDocument, deleteDocument };
+  function deleteDocumentsByProject(projectId: string) {
+    setDocuments((prev) => prev.filter((d) => d.projectId !== projectId));
+  }
+
+  return { documents, addDocument, updateDocument, deleteDocument, deleteDocumentsByProject };
 }

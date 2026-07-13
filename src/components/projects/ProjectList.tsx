@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { Program, Project } from '../../types';
 import { computeProgressPercent, getCurrentStage, isGroupMilestone } from '../../services/milestoneUtils';
 import { DEFAULT_PROJECT_ID } from '../../hooks/useProjects';
@@ -8,6 +9,7 @@ interface ProjectListProps {
   programs: Program[];
   onOpen: (id: string) => void;
   onNewProject: () => void;
+  onDelete: (id: string) => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -27,7 +29,19 @@ function currentStageLabel(project: Project): string {
   return stage.name;
 }
 
-function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: string) => void }) {
+function ProjectTable({ projects, onOpen, onDelete }: { projects: Project[]; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    if (confirmId === id) {
+      onDelete(id);
+      setConfirmId(null);
+    } else {
+      setConfirmId(id);
+    }
+  }
+
   return (
     <table className="w-full text-sm table-fixed">
       <colgroup>
@@ -35,8 +49,9 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
         <col style={{ width: '10%' }} />
         <col style={{ width: '10%' }} />
         <col style={{ width: '9%' }} />
-        <col style={{ width: '44%' }} />
+        <col style={{ width: '40%' }} />
         <col style={{ width: '12%' }} />
+        <col style={{ width: '4%' }} />
       </colgroup>
       <thead className="bg-slate-900 text-slate-400 text-xs">
         <tr>
@@ -46,13 +61,20 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
           <th className="text-left px-4 py-2">狀態</th>
           <th className="text-left px-4 py-2">目前階段</th>
           <th className="text-right px-4 py-2">進度%</th>
+          <th />
         </tr>
       </thead>
       <tbody>
         {projects.map((p) => {
           const pct = computeProgressPercent(p.milestones);
+          const confirming = confirmId === p.id;
           return (
-            <tr key={p.id} className="border-t border-slate-800 hover:bg-slate-900/60 cursor-pointer" onClick={() => onOpen(p.id)}>
+            <tr
+              key={p.id}
+              className="border-t border-slate-800 hover:bg-slate-900/60 cursor-pointer group"
+              onClick={() => { if (!confirming) onOpen(p.id); }}
+              onMouseLeave={() => { if (confirmId === p.id) setConfirmId(null); }}
+            >
               <td className="px-4 py-3 font-medium truncate">{p.name}</td>
               <td className="px-4 py-3 text-slate-400 truncate">{p.productLine || '—'}</td>
               <td className="px-4 py-3 text-slate-400 truncate">{p.grade || '—'}</td>
@@ -68,6 +90,23 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
                   </div>
                 </div>
               </td>
+              <td className="px-2 py-3 text-right">
+                {confirming ? (
+                  <button
+                    onClick={(e) => handleDelete(e, p.id)}
+                    className="text-xs text-red-400 hover:text-red-300 whitespace-nowrap px-1"
+                  >
+                    確認刪除?
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => handleDelete(e, p.id)}
+                    className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-opacity"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </td>
             </tr>
           );
         })}
@@ -76,7 +115,7 @@ function ProjectTable({ projects, onOpen }: { projects: Project[]; onOpen: (id: 
   );
 }
 
-export default function ProjectList({ projects, programs, onOpen, onNewProject }: ProjectListProps) {
+export default function ProjectList({ projects, programs, onOpen, onNewProject, onDelete }: ProjectListProps) {
   // 虛擬的「日常行政/雜項」專案不是真的 NPI 專案，這頁不列出來（Task 建立時的專案選單才看得到）。
   const realProjects = projects.filter((p) => p.id !== DEFAULT_PROJECT_ID);
   const programIds = new Set(programs.map((p) => p.id));
@@ -107,7 +146,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject }
               <span className="text-slate-500 font-normal ml-2">{groupProjects.length} 個小專案</span>
             </h2>
             <div className="border border-slate-800 rounded-xl overflow-hidden">
-              <ProjectTable projects={groupProjects} onOpen={onOpen} />
+              <ProjectTable projects={groupProjects} onOpen={onOpen} onDelete={onDelete} />
             </div>
           </div>
         ))}
@@ -116,7 +155,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject }
           <div>
             {grouped.length > 0 && <h2 className="text-sm font-semibold text-slate-500 mb-2">未歸屬大專案</h2>}
             <div className="border border-slate-800 rounded-xl overflow-hidden">
-              <ProjectTable projects={ungrouped} onOpen={onOpen} />
+              <ProjectTable projects={ungrouped} onOpen={onOpen} onDelete={onDelete} />
             </div>
           </div>
         )}

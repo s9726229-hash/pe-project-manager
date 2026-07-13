@@ -51,5 +51,9 @@ export function useCases() {
     setCases((prev) => prev.filter((c) => c.id !== id));
   }
 
-  return { cases, addCase, updateCase, updateSteps, deleteCase };
+  function deleteCasesByProject(projectId: string) {
+    setCases((prev) => prev.filter((c) => c.projectId !== projectId));
+  }
+
+  return { cases, addCase, updateCase, updateSteps, deleteCase, deleteCasesByProject };
 }

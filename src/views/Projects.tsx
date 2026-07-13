@@ -30,12 +30,12 @@ export default function Projects({
   focusProjectId,
   onFocusConsumed
 }: ProjectsProps) {
-  const { projects, addProject, updateProject, updateMilestones } = projectsApi;
+  const { projects, addProject, updateProject, updateMilestones, deleteProject } = projectsApi;
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
-  const { cases, addCase, updateCase, deleteCase } = casesApi;
-  const { notes, saveNote } = notesApi;
-  const { documents, addDocument, updateDocument, deleteDocument } = documentsApi;
+  const { cases, addCase, updateCase, deleteCase, deleteCasesByProject } = casesApi;
+  const { notes, saveNote, deleteNotesByProject } = notesApi;
+  const { documents, addDocument, updateDocument, deleteDocument, deleteDocumentsByProject } = documentsApi;
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
@@ -50,6 +50,14 @@ export default function Projects({
   }, [focusProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
+
+  function handleDeleteProject(id: string) {
+    deleteCasesByProject(id);
+    deleteNotesByProject(id);
+    deleteDocumentsByProject(id);
+    deleteProject(id);
+    setSelectedProjectId(null);
+  }
 
   function handleCreate(input: {
     name: string;
@@ -74,6 +82,7 @@ export default function Projects({
         programs={programs}
         onAddProgram={addProgram}
         onBack={() => setSelectedProjectId(null)}
+        onDelete={handleDeleteProject}
         onUpdateProject={updateProject}
         onUpdateMilestones={updateMilestones}
         cases={cases}
@@ -94,7 +103,7 @@ export default function Projects({
 
   return (
     <>
-      <ProjectList projects={projects} programs={programs} onOpen={setSelectedProjectId} onNewProject={() => setShowNewProject(true)} />
+      <ProjectList projects={projects} programs={programs} onOpen={setSelectedProjectId} onNewProject={() => setShowNewProject(true)} onDelete={handleDeleteProject} />
       {showNewProject && (
         <NewProjectModal
           categories={categories}
