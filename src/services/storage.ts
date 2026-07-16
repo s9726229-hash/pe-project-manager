@@ -13,8 +13,15 @@ export function loadFromStorage<T>(key: string, fallback: T): T {
   }
 }
 
+// 資料變動通知：自動備份用它得知「有東西存檔了」，不用每個 hook 各自通知。
+let changeListener: (() => void) | null = null;
+export function setStorageChangeListener(cb: (() => void) | null): void {
+  changeListener = cb;
+}
+
 export function saveToStorage<T>(key: string, value: T): void {
   localStorage.setItem(PREFIX + key, JSON.stringify(value));
+  changeListener?.();
 }
 
 export const STORAGE_KEYS = {

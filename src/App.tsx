@@ -17,6 +17,7 @@ import { useCases } from './hooks/useCases';
 import { useNotes } from './hooks/useNotes';
 import { useDocuments } from './hooks/useDocuments';
 import { useKnowledge } from './hooks/useKnowledge';
+import { initAutoBackup } from './services/autoBackup';
 
 export type ViewState = 'DASHBOARD' | 'PROJECTS' | 'TASKS' | 'CALENDAR' | 'KNOWLEDGE_BASE' | 'TEMPLATE_MANAGER' | 'CHANGELOG' | 'SETTINGS';
 
@@ -38,6 +39,9 @@ export default function App() {
     setFocusProjectId(projectId);
     setView('PROJECTS');
   }
+
+  // 自動備份：每日快照 + 備份資料夾監聽
+  useEffect(() => { initAutoBackup(); }, []);
 
   // Ctrl+K / Cmd+K 開啟搜尋
   useEffect(() => {
