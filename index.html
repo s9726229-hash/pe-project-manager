@@ -27,6 +27,13 @@
         }
       };
     </script>
+    <style>
+      .rich-editor { padding: 0.75rem 1rem; font-size: 0.875rem; color: #cbd5e1; line-height: 1.7; white-space: pre-wrap; }
+      .rich-editor:empty:before { content: attr(data-placeholder); color: #475569; }
+      .rich-editor td, .rich-editor th { color: #cbd5e1; }
+      .rich-editor th { background: rgba(148, 163, 184, 0.08); font-weight: 600; }
+      .rich-editor table { white-space: normal; }
+    </style>
   </head>
   <body class="bg-slate-950 text-slate-100">
     <div id="root"></div>

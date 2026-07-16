@@ -1,4 +1,5 @@
 import type { Case, KnowledgeCategory, KnowledgeNote, Note, Program, Project, Task } from '../types';
+import { stripHtml } from './richText';
 
 export type SearchResultKind = 'project' | 'task' | 'case' | 'note' | 'knowledge';
 
@@ -80,12 +81,13 @@ export function globalSearch(
 
   // 備忘事項
   for (const n of data.notes) {
-    if (hit(q, n.content)) {
+    if (hit(q, stripHtml(n.content))) {
       const project = data.projects.find((p) => p.id === n.projectId);
+      const text = stripHtml(n.content);
       results.push({
         kind: 'note',
         id: n.id,
-        title: n.content.slice(0, 60) + (n.content.length > 60 ? '…' : ''),
+        title: text.slice(0, 60) + (text.length > 60 ? '…' : ''),
         subtitle: `備忘事項 · ${project?.name ?? ''}`,
         projectId: n.projectId,
       });
@@ -94,12 +96,13 @@ export function globalSearch(
 
   // 知識庫
   for (const kn of data.knowledgeNotes) {
-    if (hit(q, kn.title, kn.content)) {
+    const text = stripHtml(kn.content);
+    if (hit(q, kn.title, text)) {
       const cat = data.knowledgeCategories.find((c) => c.id === kn.categoryId);
       results.push({
         kind: 'knowledge',
         id: kn.id,
-        title: kn.title || kn.content.slice(0, 60),
+        title: kn.title || text.slice(0, 60),
         subtitle: `知識庫 · ${cat?.name ?? ''}`,
       });
     }

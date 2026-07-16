@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { useKnowledge } from '../hooks/useKnowledge';
 import { estimateWidthCh } from '../services/textWidth';
+import { stripHtml } from '../services/richText';
+import RichTextEditor from '../components/common/RichTextEditor';
 
 interface KnowledgeBaseProps {
   knowledgeApi: ReturnType<typeof useKnowledge>;
@@ -132,7 +134,7 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
                     )}
                   </div>
                   <div className="text-xs text-slate-500 truncate mt-0.5">
-                    {n.content.replace(/\n/g, ' ').slice(0, 60)}
+                    {stripHtml(n.content).slice(0, 60)}
                   </div>
                 </button>
               );
@@ -164,13 +166,14 @@ export default function KnowledgeBase({ knowledgeApi }: KnowledgeBaseProps) {
                   <Trash2 size={15} />
                 </button>
               </div>
-              <textarea
-                className="flex-1 w-full bg-transparent px-4 py-3 text-sm text-slate-300 outline-none resize-none leading-relaxed"
-                placeholder="內容..."
-                value={selectedNote.content === '（新筆記）' ? '' : selectedNote.content}
-                onChange={(e) => updateNote(selectedNote.id, { content: e.target.value })}
-                autoFocus
-              />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <RichTextEditor
+                  value={selectedNote.content === '（新筆記）' ? '' : selectedNote.content}
+                  onChange={(html) => updateNote(selectedNote.id, { content: html })}
+                  placeholder="內容，也可以插入表格..."
+                  className="flex-1"
+                />
+              </div>
             </>
           )}
         </div>
