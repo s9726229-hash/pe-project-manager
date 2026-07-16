@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, AlertTriangle, CalendarDays, Check, Clock, Flame, FolderKanban, Plus } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, Flame, FolderKanban, Plus } from 'lucide-react';
 import type { useTasks } from '../hooks/useTasks';
 import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
@@ -125,6 +125,15 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const { programs } = programsApi;
 
   const [quickTitle, setQuickTitle] = useState('');
+  const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(new Set());
+
+  function toggleProgram(id: string) {
+    setExpandedPrograms((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -188,8 +197,8 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
         <KpiTile label="本週到期"    value={weekTasks}         icon={CalendarDays} colorClass="text-sky-400" />
       </div>
 
-      {/* ── 主內容：左右欄 ── */}
-      <div className="grid grid-cols-2 gap-6 items-start">
+      {/* ── 主內容：左右欄（待辦 1/3、專案 2/3） ── */}
+      <div className="grid grid-cols-3 gap-6 items-start">
 
         {/* ── 左欄：待辦 ── */}
         <div>
@@ -218,25 +227,25 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                         {group.parentTitle && (
                           <div className="flex items-center gap-1.5 mt-1 mb-0.5">
                             <div className="w-0.5 h-3 bg-slate-700 rounded-full shrink-0" />
-                            <span className="text-[10px] text-slate-600 font-semibold tracking-wide uppercase truncate">
+                            <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase truncate">
                               {group.parentTitle}
                             </span>
                           </div>
                         )}
                         <div className="space-y-1">
                           {group.items.map((t) => (
-                            <div key={t.id} className="flex items-center gap-2 py-0.5 group/row">
+                            <div key={t.id} className="flex items-start gap-2 py-0.5 group/row">
                               <button
                                 onClick={() => setStatus(t.id, '已完成')}
-                                className="w-4 h-4 rounded-full border border-slate-700 shrink-0 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group-hover/row:border-slate-500"
+                                className="w-4 h-4 mt-0.5 rounded-full border border-slate-700 shrink-0 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-500/10 transition-colors group-hover/row:border-slate-500"
                               >
                                 <Check size={10} className="text-emerald-400 opacity-0 group-hover/row:opacity-50 transition-opacity" />
                               </button>
-                              <div className="w-3 shrink-0 flex items-center justify-center">
+                              <div className="w-3 mt-1 shrink-0 flex items-center justify-center">
                                 {t.urgent && <Flame size={11} className="text-red-400" />}
                               </div>
-                              <span className="flex-1 truncate text-sm text-slate-300">{t.title}</span>
-                              <span className={`text-[11px] shrink-0 tabular-nums ${b === 'overdue' ? 'text-red-400' : 'text-slate-600'}`}>
+                              <span className="flex-1 text-sm text-slate-300 break-words line-clamp-2">{t.title}</span>
+                              <span className={`text-[11px] mt-0.5 shrink-0 tabular-nums ${b === 'overdue' ? 'text-red-400' : 'text-slate-400'}`}>
                                 {t.dueDate?.slice(5) ?? '—'}
                               </span>
                             </div>
@@ -263,11 +272,25 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
         </div>
 
         {/* ── 右欄：專案進度 ── */}
-        <div className="min-w-0">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            專案進度
-            <span className="ml-2 text-slate-600 font-normal normal-case">{visibleProjects.length} 個</span>
-          </h2>
+        <div className="min-w-0 col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              專案進度
+              <span className="ml-2 text-slate-600 font-normal normal-case">{visibleProjects.length} 個</span>
+            </h2>
+            {programCards.length > 0 && (
+              <button
+                onClick={() => setExpandedPrograms(
+                  expandedPrograms.size === programCards.length
+                    ? new Set()
+                    : new Set(programCards.map((g) => g.program.id))
+                )}
+                className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {expandedPrograms.size === programCards.length ? '全部收合' : '全部展開'}
+              </button>
+            )}
+          </div>
 
           {visibleProjects.length === 0 && (
             <p className="text-slate-500 text-sm">目前沒有進行中或暫停的專案。</p>
@@ -280,12 +303,21 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
               const progress = computeCombinedProgress(items);
               const nextDate = combinedNextMilestoneDate(items);
               const overdueCount = countOverdueMilestones(items, today);
+              const expanded = expandedPrograms.has(program.id);
               return (
                 <div key={program.id} className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-colors">
-                  {/* 卡片 Header */}
-                  <div className="px-4 pt-4 pb-3">
+                  {/* 卡片 Header（點擊展開/收合） */}
+                  <button
+                    onClick={() => toggleProgram(program.id)}
+                    className="w-full px-4 pt-4 pb-3 text-left hover:bg-slate-800/30 transition-colors"
+                  >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-slate-100 truncate">{program.name}</span>
+                      <span className="flex items-center gap-1.5 font-semibold text-slate-100 truncate">
+                        {expanded
+                          ? <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                          : <ChevronRight size={14} className="text-slate-400 shrink-0" />}
+                        {program.name}
+                      </span>
                       <span className="text-xs text-slate-500 shrink-0 ml-2">{items.length} 個子專案</span>
                     </div>
                     {/* 進度條 */}
@@ -300,7 +332,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400 font-medium">{progress}%</span>
-                      {nextDate && <span className="text-slate-600">↗ {nextDate}</span>}
+                      {nextDate && <span className="text-slate-400">↗ {nextDate}</span>}
                     </div>
                     {overdueCount > 0 && (
                       <div className="flex items-center gap-1 text-xs text-red-400 mt-2">
@@ -308,49 +340,59 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                         <span>{overdueCount} 個里程碑逾期</span>
                       </div>
                     )}
-                  </div>
-                  {/* 子專案列表 */}
-                  <div className="border-t border-slate-800/80">
-                    {items.map((p) => {
-                      const stage = getCurrentStage(p.milestones);
-                      const pct = computeProgressPercent(p.milestones);
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => onOpenProject(p.id)}
-                          className="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-slate-800/60 text-left group border-b border-slate-800/60 last:border-0 transition-colors"
-                        >
-                          {/* mini 進度條 */}
-                          <div className="w-1 h-8 bg-slate-800 rounded-full overflow-hidden shrink-0 mt-0.5">
-                            <div
-                              className="rounded-full transition-all"
-                              style={{ height: `${pct}%`, background: 'linear-gradient(180deg, #818cf8, #6366f1)' }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm text-slate-200 group-hover:text-white truncate">{p.name}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">{stage?.name ?? '—'}</div>
-                            {stage?.subMilestones && stage.subMilestones.filter((s) => s.status !== '已完成').length > 0 && (
-                              <div className="mt-1 space-y-0.5">
-                                {stage.subMilestones.filter((s) => s.status !== '已完成').map((s) => (
-                                  <div key={s.id} className="flex items-center gap-1 text-[10px] text-slate-600">
-                                    <div className="w-1 h-1 rounded-full bg-slate-700 shrink-0" />
-                                    <span className="truncate">{s.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-sm font-semibold text-slate-300">{pct}%</div>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[p.status]}`}>
-                              {p.status}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  </button>
+                  {/* 子專案列表（展開時顯示） */}
+                  {expanded && (
+                    <div className="border-t border-slate-800/80">
+                      {items.map((p) => {
+                        const stage = getCurrentStage(p.milestones);
+                        const pct = computeProgressPercent(p.milestones);
+                        const pendingSubs = (stage?.subMilestones?.filter((s) => s.status !== '已完成') ?? [])
+                          .sort((a, b) => ((a.plannedDate ?? '9999') < (b.plannedDate ?? '9999') ? -1 : 1));
+                        const shownSubs = pendingSubs.slice(0, 2);
+                        const moreCount = pendingSubs.length - shownSubs.length;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => onOpenProject(p.id)}
+                            className="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-slate-800/60 text-left group border-b border-slate-800/60 last:border-0 transition-colors"
+                          >
+                            {/* mini 進度條 */}
+                            <div className="w-1 h-8 bg-slate-800 rounded-full overflow-hidden shrink-0 mt-0.5">
+                              <div
+                                className="rounded-full transition-all"
+                                style={{ height: `${pct}%`, background: 'linear-gradient(180deg, #818cf8, #6366f1)' }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm text-slate-200 group-hover:text-white truncate">{p.name}</div>
+                              <div className="text-xs text-slate-400 mt-0.5">{stage?.name ?? '—'}</div>
+                              {shownSubs.length > 0 && (
+                                <div className="mt-1 space-y-0.5">
+                                  {shownSubs.map((s) => (
+                                    <div key={s.id} className="flex items-center gap-1.5 text-xs text-slate-400">
+                                      <div className="w-1 h-1 rounded-full bg-slate-600 shrink-0" />
+                                      <span className="truncate">{s.name}</span>
+                                      {s.plannedDate && <span className="shrink-0 text-slate-500">{s.plannedDate.slice(5)}</span>}
+                                    </div>
+                                  ))}
+                                  {moreCount > 0 && (
+                                    <div className="text-[11px] text-slate-500 pl-2.5">+{moreCount} 項</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-sm font-semibold text-slate-300">{pct}%</div>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[p.status]}`}>
+                                {p.status}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -361,6 +403,10 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
               const pct = computeProgressPercent(p.milestones);
               const nextDate = getNextMilestoneDate(p.milestones);
               const overdueCount = countOverdueMilestones([p], today);
+              const pendingSubs = (stage?.subMilestones?.filter((s) => s.status !== '已完成') ?? [])
+                .sort((a, b) => ((a.plannedDate ?? '9999') < (b.plannedDate ?? '9999') ? -1 : 1));
+              const shownSubs = pendingSubs.slice(0, 2);
+              const moreCount = pendingSubs.length - shownSubs.length;
               return (
                 <button
                   key={p.id}
@@ -387,20 +433,23 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                   <div className="flex items-center justify-between text-xs mb-2">
                     <span className="text-slate-400 font-medium">{pct}% 完成</span>
                     {stage && (
-                      <span className="text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                      <span className="text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full">
                         {stage.name}
                       </span>
                     )}
                   </div>
-                  {stage?.subMilestones && stage.subMilestones.filter((s) => s.status !== '已完成').length > 0 && (
-                    <div className="mb-2 space-y-1">
-                      {stage.subMilestones.filter((s) => s.status !== '已完成').map((s) => (
-                        <div key={s.id} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                  {shownSubs.length > 0 && (
+                    <div className="mb-2 space-y-0.5">
+                      {shownSubs.map((s) => (
+                        <div key={s.id} className="flex items-center gap-1.5 text-xs text-slate-400">
                           <div className="w-1 h-1 rounded-full bg-slate-600 shrink-0" />
                           <span className="truncate">{s.name}</span>
-                          {s.plannedDate && <span className="shrink-0 text-slate-600">{s.plannedDate.slice(5)}</span>}
+                          {s.plannedDate && <span className="shrink-0 text-slate-500">{s.plannedDate.slice(5)}</span>}
                         </div>
                       ))}
+                      {moreCount > 0 && (
+                        <div className="text-[11px] text-slate-500 pl-2.5">+{moreCount} 項</div>
+                      )}
                     </div>
                   )}
                   {overdueCount > 0 && (
@@ -410,8 +459,8 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                     </div>
                   )}
                   {nextDate && (
-                    <div className="text-xs text-slate-600 pt-2 border-t border-slate-800">
-                      ↗ 下一里程碑 <span className="text-slate-500">{nextDate}</span>
+                    <div className="text-xs text-slate-400 pt-2 border-t border-slate-800">
+                      ↗ 下一里程碑 <span className="text-slate-300">{nextDate}</span>
                     </div>
                   )}
                 </button>
