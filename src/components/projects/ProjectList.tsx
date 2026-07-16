@@ -19,6 +19,23 @@ const STATUS_COLOR: Record<string, string> = {
   已完成: 'text-emerald-400 bg-emerald-400/10'
 };
 
+// 欄位順序：小專案名稱/產品線/產品等級/備註/狀態/目前階段/進度%/刪除鈕
+const DEFAULT_COL_WIDTHS = ['15%', '9%', '8%', '16%', '8%', '28%', '12%', '4%'];
+const COL_WIDTHS_STORAGE_KEY = 'pe-pm:projectListColWidths';
+
+function loadColWidths(): string[] {
+  try {
+    const saved = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+    if (saved) {
+      const arr = JSON.parse(saved);
+      if (Array.isArray(arr) && arr.length === DEFAULT_COL_WIDTHS.length && arr.every((w) => typeof w === 'string')) {
+        return arr;
+      }
+    }
+  } catch { /* 壞資料就用預設 */ }
+  return DEFAULT_COL_WIDTHS;
+}
+
 function currentStageLabel(project: Project): string {
   const stage = getCurrentStage(project.milestones);
   if (!stage) return '—';
@@ -29,7 +46,15 @@ function currentStageLabel(project: Project): string {
   return stage.name;
 }
 
-function ProjectTable({ projects, onOpen, onDelete }: { projects: Project[]; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
+interface ProjectTableProps {
+  projects: Project[];
+  colWidths: string[];
+  onResizeCol: (index: number, px: number) => void;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function ProjectTable({ projects, colWidths, onResizeCol, onOpen, onDelete }: ProjectTableProps) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   function handleDelete(e: React.MouseEvent, id: string) {
@@ -42,25 +67,53 @@ function ProjectTable({ projects, onOpen, onDelete }: { projects: Project[]; onO
     }
   }
 
+  function startResize(e: React.MouseEvent, index: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = (e.currentTarget as HTMLElement).closest('th');
+    if (!th) return;
+    const startX = e.clientX;
+    const startWidth = th.offsetWidth;
+    function onMove(ev: MouseEvent) {
+      onResizeCol(index, Math.max(60, startWidth + ev.clientX - startX));
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+  }
+
+  const HEADERS: { label: string; align?: 'right' }[] = [
+    { label: '小專案名稱' },
+    { label: '產品線' },
+    { label: '產品等級' },
+    { label: '備註' },
+    { label: '狀態' },
+    { label: '目前階段' },
+    { label: '進度%', align: 'right' },
+  ];
+
   return (
     <table className="w-full text-sm table-fixed">
       <colgroup>
-        <col style={{ width: '15%' }} />
-        <col style={{ width: '10%' }} />
-        <col style={{ width: '10%' }} />
-        <col style={{ width: '9%' }} />
-        <col style={{ width: '40%' }} />
-        <col style={{ width: '12%' }} />
-        <col style={{ width: '4%' }} />
+        {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
       </colgroup>
       <thead className="bg-slate-900 text-slate-400 text-xs">
         <tr>
-          <th className="text-left px-4 py-2">小專案名稱</th>
-          <th className="text-left px-4 py-2">產品線</th>
-          <th className="text-left px-4 py-2">產品等級</th>
-          <th className="text-left px-4 py-2">狀態</th>
-          <th className="text-left px-4 py-2">目前階段</th>
-          <th className="text-right px-4 py-2">進度%</th>
+          {HEADERS.map((h, i) => (
+            <th key={h.label} className={`relative px-4 py-2 ${h.align === 'right' ? 'text-right' : 'text-left'}`}>
+              {h.label}
+              {/* 拖拉把手：調整此欄寬度，同步套用到所有大專案的表格 */}
+              <span
+                onMouseDown={(e) => startResize(e, i)}
+                className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary-500/50 select-none"
+              />
+            </th>
+          ))}
           <th />
         </tr>
       </thead>
@@ -75,9 +128,10 @@ function ProjectTable({ projects, onOpen, onDelete }: { projects: Project[]; onO
               onClick={() => { if (!confirming) onOpen(p.id); }}
               onMouseLeave={() => { if (confirmId === p.id) setConfirmId(null); }}
             >
-              <td className="px-4 py-3 font-medium truncate">{p.name}</td>
-              <td className="px-4 py-3 text-slate-400 truncate">{p.productLine || '—'}</td>
-              <td className="px-4 py-3 text-slate-400 truncate">{p.grade || '—'}</td>
+              <td className="px-4 py-3 font-medium break-words">{p.name}</td>
+              <td className="px-4 py-3 text-slate-400 break-words">{p.productLine || '—'}</td>
+              <td className="px-4 py-3 text-slate-400 break-words">{p.grade || '—'}</td>
+              <td className="px-4 py-3 text-slate-400 break-words">{p.notes || '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLOR[p.status]}`}>{p.status}</span>
               </td>
@@ -124,16 +178,43 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject, 
     .filter((g) => g.projects.length > 0);
   const ungrouped = realProjects.filter((p) => !p.programId || !programIds.has(p.programId));
 
+  const [colWidths, setColWidths] = useState<string[]>(loadColWidths);
+  const customized = colWidths.some((w, i) => w !== DEFAULT_COL_WIDTHS[i]);
+
+  function resizeCol(index: number, px: number) {
+    setColWidths((prev) => {
+      const next = [...prev];
+      next[index] = `${px}px`;
+      try { localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(next)); } catch { /* 存不進去就只影響本次 */ }
+      return next;
+    });
+  }
+
+  function resetColWidths() {
+    try { localStorage.removeItem(COL_WIDTHS_STORAGE_KEY); } catch { /* ignore */ }
+    setColWidths(DEFAULT_COL_WIDTHS);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">專案</h1>
-        <button
-          onClick={onNewProject}
-          className="flex items-center gap-1 text-sm bg-primary-600 hover:bg-primary-500 rounded-lg px-3 py-1.5"
-        >
-          <Plus size={16} /> 新增專案
-        </button>
+        <div className="flex items-center gap-3">
+          {customized && (
+            <button
+              onClick={resetColWidths}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              重設欄寬
+            </button>
+          )}
+          <button
+            onClick={onNewProject}
+            className="flex items-center gap-1 text-sm bg-primary-600 hover:bg-primary-500 rounded-lg px-3 py-1.5"
+          >
+            <Plus size={16} /> 新增專案
+          </button>
+        </div>
       </div>
 
       {realProjects.length === 0 && <p className="text-slate-500 text-sm">還沒有專案，點右上角新增一個吧。</p>}
@@ -146,7 +227,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject, 
               <span className="text-slate-500 font-normal ml-2">{groupProjects.length} 個小專案</span>
             </h2>
             <div className="border border-slate-800 rounded-xl overflow-hidden">
-              <ProjectTable projects={groupProjects} onOpen={onOpen} onDelete={onDelete} />
+              <ProjectTable projects={groupProjects} colWidths={colWidths} onResizeCol={resizeCol} onOpen={onOpen} onDelete={onDelete} />
             </div>
           </div>
         ))}
@@ -155,7 +236,7 @@ export default function ProjectList({ projects, programs, onOpen, onNewProject, 
           <div>
             {grouped.length > 0 && <h2 className="text-sm font-semibold text-slate-500 mb-2">未歸屬大專案</h2>}
             <div className="border border-slate-800 rounded-xl overflow-hidden">
-              <ProjectTable projects={ungrouped} onOpen={onOpen} onDelete={onDelete} />
+              <ProjectTable projects={ungrouped} colWidths={colWidths} onResizeCol={resizeCol} onOpen={onOpen} onDelete={onDelete} />
             </div>
           </div>
         )}
