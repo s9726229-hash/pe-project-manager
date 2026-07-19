@@ -5,8 +5,8 @@ import type { useProjects } from '../hooks/useProjects';
 import type { usePrograms } from '../hooks/usePrograms';
 import type { Project, Task } from '../types';
 import { DEFAULT_PROJECT_ID } from '../hooks/useProjects';
-import { flattenTaskLeaves, isParentTask } from '../services/taskUtils';
-import { getInProgressTaskLeaves, sortTasksByDueDate } from '../services/taskSelectors';
+import { isParentTask } from '../services/taskUtils';
+import { getInProgressTaskLeaves, getPendingTaskLeaves, sortTasksByDueDate } from '../services/taskSelectors';
 import { computeProgressPercent, flattenLeaves, getCurrentStage, getNextMilestoneDate } from '../services/milestoneUtils';
 import InProgressTaskList from '../components/tasks/InProgressTaskList';
 
@@ -149,9 +149,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const weekEnd = addDays(startOfWeek(today), 6);
 
   // 待辦分 bucket
-  const pendingTasks = flattenTaskLeaves(tasks)
-    .filter((t) => t.status !== '已完成')
-    .sort((a, b) => ((a.dueDate ?? '9999') < (b.dueDate ?? '9999') ? -1 : 1));
+  const pendingTasks = sortTasksByDueDate(getPendingTaskLeaves(tasks));
   const inProgressTasks = sortTasksByDueDate(getInProgressTaskLeaves(tasks));
 
   const buckets: Record<Bucket, typeof pendingTasks> = { overdue: [], today: [], week: [], later: [], none: [] };

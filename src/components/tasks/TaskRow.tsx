@@ -68,7 +68,7 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
             onClick={(e) => e.stopPropagation()}>
             <span>{effectiveDueDate ?? '—'}</span>
             <button onClick={() => setNotesOpen((v) => !v)}
-              title="編輯任務備註"
+              title="目前進度／備註"
               className={`p-1 ${notesOpen || task.notes ? 'text-primary-400' : 'text-slate-600 hover:text-slate-400'}`}>
               <MessageSquare size={13} />
             </button>
@@ -85,8 +85,8 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
               autoFocus
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-slate-300 outline-none resize-none"
               rows={2}
-              aria-label="任務備註"
-              placeholder="輸入任務備註內容，可記錄細節或追蹤事項"
+              aria-label="目前進度／備註"
+              placeholder="記錄目前情況、阻塞點或下一步…"
               value={task.notes ?? ''}
               onChange={(e) => updateField({ notes: e.target.value })}
             />
@@ -184,7 +184,7 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
           </button>
           <button
             onClick={() => setNotesOpen((v) => !v)}
-            title="編輯任務備註"
+            title="目前進度／備註"
             className={`p-1 ${notesOpen || task.notes ? 'text-primary-400' : 'text-slate-600 hover:text-slate-400'}`}
           >
             <MessageSquare size={13} />
@@ -211,8 +211,8 @@ export default function TaskRow({ task, onChange, onPostpone, onAddSubTask, onDe
             autoFocus
             className="w-full bg-slate-800/60 border border-slate-700 rounded px-3 py-2 text-xs text-slate-300 outline-none resize-none"
             rows={2}
-            aria-label="任務備註"
-            placeholder="輸入任務備註內容，可記錄細節或追蹤事項"
+            aria-label="目前進度／備註"
+            placeholder="記錄目前情況、阻塞點或下一步…"
             value={task.notes ?? ''}
             onChange={(e) => updateField({ notes: e.target.value })}
           />

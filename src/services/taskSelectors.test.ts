@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Project, Task } from '../types';
 import {
   getInProgressTaskLeaves,
+  getPendingTaskLeaves,
   getTaskProjectName,
   sortTasksByDueDate,
 } from './taskSelectors';
@@ -37,6 +38,15 @@ describe('taskSelectors', () => {
     ];
 
     expect(getInProgressTaskLeaves(tasks)).toEqual([childInProgress]);
+  });
+
+  it('keeps waiting and todo leaves pending while excluding in-progress and completed leaves', () => {
+    const waiting = task({ id: 'waiting' });
+    const todo = task({ id: 'todo', status: '待辦' });
+    const inProgress = task({ id: 'in-progress', status: '進行中' });
+    const completed = task({ id: 'completed', status: '已完成' });
+
+    expect(getPendingTaskLeaves([waiting, todo, inProgress, completed])).toEqual([waiting, todo]);
   });
 
   it('sorts dated tasks ascending before undated tasks without mutating input', () => {
