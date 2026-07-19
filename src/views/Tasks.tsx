@@ -44,7 +44,7 @@ function getBucket(dueDate: string | undefined, today: string, weekEnd: string):
   return 'later';
 }
 
-export default function Tasks({ tasksApi }: TasksProps) {
+export default function Tasks({ tasksApi, projectsApi }: TasksProps) {
   const { tasks, addTask, updateTask, postponeTask, addSubTask, deleteTask } = tasksApi;
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -77,7 +77,7 @@ export default function Tasks({ tasksApi }: TasksProps) {
         </label>
       </div>
 
-      <NewTaskForm onCreate={addTask} />
+      <NewTaskForm projects={projectsApi.projects} onCreate={addTask} />
 
       {visibleTasks.length === 0 && <p className="text-slate-500 text-sm mt-4">目前沒有待辦事項。</p>}
 

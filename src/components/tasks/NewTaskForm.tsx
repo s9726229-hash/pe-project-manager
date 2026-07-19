@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { DEFAULT_PROJECT_ID } from '../../hooks/useProjects';
+import type { Project } from '../../types';
 
 interface NewTaskFormProps {
+  projects: Project[];
   onCreate: (input: { title: string; projectId: string; dueDate?: string; urgent?: boolean }) => void;
 }
 
@@ -10,15 +12,15 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function NewTaskForm({ onCreate }: NewTaskFormProps) {
+export default function NewTaskForm({ projects, onCreate }: NewTaskFormProps) {
   const [title, setTitle] = useState('');
   const [dueDate, setDueDate] = useState(todayIso());
   const [urgent, setUrgent] = useState(false);
+  const [projectId, setProjectId] = useState(DEFAULT_PROJECT_ID);
 
   function handleSubmit() {
     if (!title.trim()) return;
-    // 新任務預設掛在「日常行政/雜項」，要歸到哪個專案之後在清單上改就好，不用新增當下就選。
-    onCreate({ title: title.trim(), projectId: DEFAULT_PROJECT_ID, dueDate: dueDate || undefined, urgent });
+    onCreate({ title: title.trim(), projectId, dueDate: dueDate || undefined, urgent });
     setTitle('');
     setUrgent(false);
   }
@@ -32,6 +34,21 @@ export default function NewTaskForm({ onCreate }: NewTaskFormProps) {
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
       />
+      <select
+        aria-label="選擇所屬專案"
+        className="bg-slate-800 rounded px-2 py-1.5 text-sm"
+        value={projectId}
+        onChange={(event) => setProjectId(event.target.value)}
+      >
+        <option value={DEFAULT_PROJECT_ID}>日常行政/雜項</option>
+        {projects
+          .filter((project) => project.id !== DEFAULT_PROJECT_ID && project.status === '進行中')
+          .map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+      </select>
       <input
         type="date"
         className="bg-slate-800 rounded px-2 py-1.5 text-sm"
