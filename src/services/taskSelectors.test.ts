@@ -54,6 +54,6 @@ describe('taskSelectors', () => {
     const projects = [project({ id: 'project-1', name: 'Alpha' })];
 
     expect(getTaskProjectName(task({ projectId: 'project-1' }), projects)).toBe('Alpha');
-    expect(getTaskProjectName(task({ projectId: 'unknown' }), projects)).toBe('未指派專案');
+    expect(getTaskProjectName(task({ projectId: 'unknown' }), projects)).toBe('未歸屬專案');
   });
 });

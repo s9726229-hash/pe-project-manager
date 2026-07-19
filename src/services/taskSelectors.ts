@@ -12,5 +12,5 @@ export function sortTasksByDueDate(tasks: Task[]): Task[] {
 }
 
 export function getTaskProjectName(task: Task, projects: Project[]): string {
-  return projects.find((project) => project.id === task.projectId)?.name ?? '未指派專案';
+  return projects.find((project) => project.id === task.projectId)?.name ?? '未歸屬專案';
 }
