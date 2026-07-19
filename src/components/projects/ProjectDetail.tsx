@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import type { Case, Note, Program, Project, ProjectDocument, Template, TemplateCategory } from '../../types';
+import type { Case, Note, Program, Project, ProjectDocument, Task, Template, TemplateCategory } from '../../types';
 import ScheduleTab from './ScheduleTab';
 import CaseList from '../cases/CaseList';
 import CaseDetail from '../cases/CaseDetail';
 import NewCaseModal from '../cases/NewCaseModal';
 import NotesTab from '../notes/NotesTab';
 import DocumentsTab from '../documents/DocumentsTab';
+import ProjectTaskList from './ProjectTaskList';
 
 interface ProjectDetailProps {
   project: Project;
@@ -16,6 +17,11 @@ interface ProjectDetailProps {
   onDelete: (id: string) => void;
   onUpdateProject: (id: string, patch: Partial<Project>) => void;
   onUpdateMilestones: (projectId: string, milestones: Project['milestones']) => void;
+  tasks: Task[];
+  onChangeTask: (task: Task) => void;
+  onPostponeTask: (id: string, newDate: string) => void;
+  onAddSubTask: (parentId: string, title: string, dueDate?: string) => void;
+  onDeleteTask: (id: string) => void;
   cases: Case[];
   templateCategories: TemplateCategory[];
   templates: Template[];
@@ -30,10 +36,11 @@ interface ProjectDetailProps {
   onDeleteDocument: (id: string) => void;
 }
 
-type Tab = 'SCHEDULE' | 'NOTES' | 'CASES' | 'DOCS';
+type Tab = 'SCHEDULE' | 'TASKS' | 'NOTES' | 'CASES' | 'DOCS';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'SCHEDULE', label: '排程進度' },
+  { id: 'TASKS', label: '任務' },
   { id: 'NOTES', label: '備忘事項' },
   { id: 'CASES', label: '問題/ECN案件' },
   { id: 'DOCS', label: '文件/會議記錄' }
@@ -49,6 +56,11 @@ export default function ProjectDetail({
   onDelete,
   onUpdateProject,
   onUpdateMilestones,
+  tasks,
+  onChangeTask,
+  onPostponeTask,
+  onAddSubTask,
+  onDeleteTask,
   cases,
   templateCategories,
   templates,
@@ -220,6 +232,16 @@ export default function ProjectDetail({
           milestones={project.milestones}
           projectStartDate={project.startDate}
           onChange={(milestones) => onUpdateMilestones(project.id, milestones)}
+        />
+      )}
+      {tab === 'TASKS' && (
+        <ProjectTaskList
+          projectId={project.id}
+          tasks={tasks}
+          onChange={onChangeTask}
+          onPostpone={onPostponeTask}
+          onAddSubTask={onAddSubTask}
+          onDelete={onDeleteTask}
         />
       )}
       {tab === 'NOTES' && <NotesTab note={projectNote} onSave={(content) => onSaveNote(project.id, content)} />}

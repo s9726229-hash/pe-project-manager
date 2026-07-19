@@ -71,6 +71,7 @@ export default function App() {
         {view === 'PROJECTS' && (
           <Projects
             projectsApi={projectsApi}
+            tasksApi={tasksApi}
             templatesApi={templatesApi}
             programsApi={programsApi}
             casesApi={casesApi}

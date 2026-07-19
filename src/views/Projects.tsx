@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { useProjects } from '../hooks/useProjects';
+import type { useTasks } from '../hooks/useTasks';
 import type { useTemplates } from '../hooks/useTemplates';
 import type { usePrograms } from '../hooks/usePrograms';
 import type { useCases } from '../hooks/useCases';
@@ -11,6 +12,7 @@ import NewProjectModal, { buildMilestonesForTemplate } from '../components/proje
 
 interface ProjectsProps {
   projectsApi: ReturnType<typeof useProjects>;
+  tasksApi: ReturnType<typeof useTasks>;
   templatesApi: ReturnType<typeof useTemplates>;
   programsApi: ReturnType<typeof usePrograms>;
   casesApi: ReturnType<typeof useCases>;
@@ -22,6 +24,7 @@ interface ProjectsProps {
 
 export default function Projects({
   projectsApi,
+  tasksApi,
   templatesApi,
   programsApi,
   casesApi,
@@ -31,6 +34,7 @@ export default function Projects({
   onFocusConsumed
 }: ProjectsProps) {
   const { projects, addProject, updateProject, updateMilestones, deleteProject } = projectsApi;
+  const { tasks, updateTask, postponeTask, addSubTask, deleteTask } = tasksApi;
   const { categories, templates } = templatesApi;
   const { programs, addProgram } = programsApi;
   const { cases, addCase, updateCase, deleteCase, deleteCasesByProject } = casesApi;
@@ -85,6 +89,11 @@ export default function Projects({
         onDelete={handleDeleteProject}
         onUpdateProject={updateProject}
         onUpdateMilestones={updateMilestones}
+        tasks={tasks}
+        onChangeTask={(task) => updateTask(task.id, task)}
+        onPostponeTask={postponeTask}
+        onAddSubTask={addSubTask}
+        onDeleteTask={deleteTask}
         cases={cases}
         templateCategories={categories}
         templates={templates}
