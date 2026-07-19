@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Project, Task } from '../types';
 import {
+  getTasksForTab,
   getInProgressTaskLeaves,
   getPendingTaskLeaves,
   getTaskProjectName,
+  limitTaskPreview,
   sortTasksByDueDate,
 } from './taskSelectors';
 
@@ -29,6 +31,35 @@ const project = (overrides: Partial<Project>): Project => ({
 });
 
 describe('taskSelectors', () => {
+  it('classifies top-level tasks for task-page tabs using effective status and due dates', () => {
+    const today = '2026-07-20';
+    const parentInProgress = task({
+      id: 'parent-in-progress',
+      subTasks: [task({ id: 'child-doing', status: '進行中' })],
+    });
+    const completedParent = task({
+      id: 'completed-parent',
+      subTasks: [task({ id: 'child-done', status: '已完成' })],
+    });
+    const overdue = task({ id: 'overdue', dueDate: '2026-07-19' });
+    const upcoming = task({ id: 'upcoming', dueDate: '2026-07-20' });
+    const undated = task({ id: 'undated' });
+    const tasks = [parentInProgress, completedParent, overdue, upcoming, undated];
+
+    expect(getTasksForTab(tasks, '進行中', today)).toEqual([parentInProgress]);
+    expect(getTasksForTab(tasks, '延遲', today)).toEqual([overdue]);
+    expect(getTasksForTab(tasks, '本週／之後', today)).toEqual([upcoming]);
+    expect(getTasksForTab(tasks, '已完成', today)).toEqual([completedParent]);
+    expect(getTasksForTab(tasks, '全部', today)).toEqual(tasks);
+  });
+
+  it('limits dashboard category previews without changing the source list', () => {
+    const tasks = [task({ id: '1' }), task({ id: '2' }), task({ id: '3' })];
+
+    expect(limitTaskPreview(tasks, 2).map(({ id }) => id)).toEqual(['1', '2']);
+    expect(tasks.map(({ id }) => id)).toEqual(['1', '2', '3']);
+  });
+
   it('returns only in-progress leaf tasks', () => {
     const childInProgress = task({ id: 'child-in-progress', status: '進行中' });
     const childTodo = task({ id: 'child-todo', status: '待辦' });

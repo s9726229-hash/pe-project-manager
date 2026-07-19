@@ -1,5 +1,31 @@
 import type { Project, Task } from '../types';
-import { flattenTaskLeaves, getEffectiveStatus } from './taskUtils';
+import { flattenTaskLeaves, getEffectiveDueDate, getEffectiveStatus } from './taskUtils';
+
+export type TaskPageTab = '全部' | '進行中' | '延遲' | '本週／之後' | '已完成';
+
+export function getTasksForTab(tasks: Task[], tab: TaskPageTab, today: string): Task[] {
+  return tasks.filter((task) => {
+    const status = getEffectiveStatus(task);
+    const dueDate = getEffectiveDueDate(task);
+
+    switch (tab) {
+      case '進行中':
+        return status === '進行中';
+      case '延遲':
+        return status !== '已完成' && !!dueDate && dueDate < today;
+      case '本週／之後':
+        return status !== '已完成' && !!dueDate && dueDate >= today;
+      case '已完成':
+        return status === '已完成';
+      case '全部':
+        return true;
+    }
+  });
+}
+
+export function limitTaskPreview(tasks: Task[], limit = 5): Task[] {
+  return tasks.slice(0, limit);
+}
 
 export function getInProgressTaskLeaves(tasks: Task[]): Task[] {
   return flattenTaskLeaves(tasks).filter((task) => getEffectiveStatus(task) === '進行中');

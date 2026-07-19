@@ -6,7 +6,7 @@ import type { usePrograms } from '../hooks/usePrograms';
 import type { Project, Task } from '../types';
 import { DEFAULT_PROJECT_ID } from '../hooks/useProjects';
 import { isParentTask } from '../services/taskUtils';
-import { getInProgressTaskLeaves, getPendingTaskLeaves, sortTasksByDueDate } from '../services/taskSelectors';
+import { getInProgressTaskLeaves, getPendingTaskLeaves, limitTaskPreview, sortTasksByDueDate } from '../services/taskSelectors';
 import { computeProgressPercent, flattenLeaves, getCurrentStage, getNextMilestoneDate } from '../services/milestoneUtils';
 import InProgressTaskList from '../components/tasks/InProgressTaskList';
 
@@ -16,6 +16,7 @@ interface DashboardProps {
   casesApi: unknown;
   programsApi: ReturnType<typeof usePrograms>;
   onOpenProject: (projectId: string) => void;
+  onOpenTasks: () => void;
 }
 
 function todayIso(): string { return new Date().toISOString().slice(0, 10); }
@@ -121,7 +122,7 @@ function KpiTile({ label, value, icon: Icon, colorClass, alertWhenPositive }: Kp
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenProject }: DashboardProps) {
+export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenProject, onOpenTasks }: DashboardProps) {
   const { tasks, setStatus, addTask } = tasksApi;
   const { projects } = projectsApi;
   const { programs } = programsApi;
@@ -209,7 +210,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
             <span className="ml-2 text-slate-600 font-normal normal-case">{inProgressTasks.length} 件</span>
           </h2>
           <InProgressTaskList
-            tasks={inProgressTasks}
+            tasks={limitTaskPreview(inProgressTasks)}
             projects={projects}
             onComplete={(id) => setStatus(id, '已完成')}
           />
@@ -234,7 +235,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
                     <span className="text-[11px] text-slate-600">{buckets[b].length}</span>
                   </div>
                   <div className="space-y-1.5">
-                    {buildRenderGroups(buckets[b], tasks).map((group) => (
+                    {buildRenderGroups(limitTaskPreview(buckets[b]), tasks).map((group) => (
                       <div key={group.groupKey}>
                         {group.parentTitle && (
                           <div className="flex items-center gap-1.5 mt-1 mb-0.5">
@@ -271,6 +272,13 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
             </div>
 
             {/* 快速新增 */}
+            <button
+              type="button"
+              onClick={onOpenTasks}
+              className="w-full border-t border-slate-800 px-3 py-2.5 text-left text-sm text-primary-400 transition-colors hover:bg-slate-800/60 hover:text-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-inset"
+            >
+              查看全部任務 →
+            </button>
             <form onSubmit={handleQuickAdd} className="border-t border-slate-800 flex items-center gap-2 px-3 py-2.5">
               <Plus size={13} className="text-slate-600 shrink-0" />
               <input

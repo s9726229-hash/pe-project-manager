@@ -66,6 +66,7 @@ export default function App() {
             casesApi={casesApi}
             programsApi={programsApi}
             onOpenProject={openProject}
+            onOpenTasks={() => setView('TASKS')}
           />
         )}
         {view === 'PROJECTS' && (
