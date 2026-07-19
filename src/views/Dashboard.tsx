@@ -6,7 +6,9 @@ import type { usePrograms } from '../hooks/usePrograms';
 import type { Project, Task } from '../types';
 import { DEFAULT_PROJECT_ID } from '../hooks/useProjects';
 import { flattenTaskLeaves, isParentTask } from '../services/taskUtils';
+import { getInProgressTaskLeaves, sortTasksByDueDate } from '../services/taskSelectors';
 import { computeProgressPercent, flattenLeaves, getCurrentStage, getNextMilestoneDate } from '../services/milestoneUtils';
+import InProgressTaskList from '../components/tasks/InProgressTaskList';
 
 interface DashboardProps {
   tasksApi: ReturnType<typeof useTasks>;
@@ -150,6 +152,7 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
   const pendingTasks = flattenTaskLeaves(tasks)
     .filter((t) => t.status !== '已完成')
     .sort((a, b) => ((a.dueDate ?? '9999') < (b.dueDate ?? '9999') ? -1 : 1));
+  const inProgressTasks = sortTasksByDueDate(getInProgressTaskLeaves(tasks));
 
   const buckets: Record<Bucket, typeof pendingTasks> = { overdue: [], today: [], week: [], later: [], none: [] };
   for (const t of pendingTasks) buckets[getBucket(t.dueDate, today, weekEnd)].push(t);
@@ -190,11 +193,12 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
       </div>
 
       {/* ── KPI 列 ── */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <KpiTile label="逾期任務"    value={overdueTasks}      icon={AlertCircle}  colorClass="text-red-400"     alertWhenPositive />
         <KpiTile label="今日待辦"    value={todayTasks}        icon={Clock}        colorClass="text-amber-400"   alertWhenPositive />
         <KpiTile label="進行中專案"  value={visibleProjects.length} icon={FolderKanban} colorClass="text-primary-400" />
         <KpiTile label="本週到期"    value={weekTasks}         icon={CalendarDays} colorClass="text-sky-400" />
+        <KpiTile label="進行中工作"  value={inProgressTasks.length} icon={Flame} colorClass="text-primary-400" />
       </div>
 
       {/* ── 主內容：左右欄（待辦 1/3、專案 2/3） ── */}
@@ -202,6 +206,16 @@ export default function Dashboard({ tasksApi, projectsApi, programsApi, onOpenPr
 
         {/* ── 左欄：待辦 ── */}
         <div>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            進行中工作
+            <span className="ml-2 text-slate-600 font-normal normal-case">{inProgressTasks.length} 件</span>
+          </h2>
+          <InProgressTaskList
+            tasks={inProgressTasks}
+            projects={projects}
+            onComplete={(id) => setStatus(id, '已完成')}
+          />
+
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
             待辦事項
             <span className="ml-2 text-slate-600 font-normal normal-case">{pendingTasks.length} 件</span>
