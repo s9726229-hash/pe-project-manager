@@ -31,6 +31,22 @@ export function getInProgressTaskLeaves(tasks: Task[]): Task[] {
   return flattenTaskLeaves(tasks).filter((task) => getEffectiveStatus(task) === '進行中');
 }
 
+export function getDashboardTaskLeaves(tasks: Task[], parent?: Task, parentUrgent = false): Task[] {
+  return tasks.flatMap((task) => {
+    const urgent = parentUrgent || !!task.urgent;
+
+    if (task.subTasks?.length) {
+      return getDashboardTaskLeaves(task.subTasks, task, urgent);
+    }
+
+    return [{
+      ...task,
+      title: parent ? `${parent.title}－${task.title}` : task.title,
+      urgent,
+    }];
+  });
+}
+
 export function getPendingTaskLeaves(tasks: Task[]): Task[] {
   return flattenTaskLeaves(tasks).filter((task) => {
     const status = getEffectiveStatus(task);

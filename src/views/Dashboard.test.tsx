@@ -125,4 +125,43 @@ describe('Dashboard workbench', () => {
     fireEvent.click(screen.getByRole('tab', { name: /尚未啟動/ }));
     expect(screen.getByText('Later task')).toBeTruthy();
   });
+
+  it('shows parent context, compact due metadata, and overdue-day detail for every overdue leaf', () => {
+    vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
+
+    render(
+      <Dashboard
+        tasksApi={{
+          tasks: [
+            task({
+              id: 'parent',
+              title: 'Parent task',
+              urgent: true,
+              subTasks: [
+                task({ id: 'child', title: 'Child task', dueDate: '2026-07-18', urgent: false }),
+                task({ id: 'second-child', title: 'Second child', dueDate: '2026-07-19' }),
+              ],
+            }),
+            task({ id: 'standalone', title: 'Standalone task', dueDate: '2026-07-17' }),
+          ],
+          setStatus: vi.fn(),
+          addTask: vi.fn(),
+        } as never}
+        projectsApi={{ projects: [project] } as never}
+        casesApi={{}}
+        programsApi={{ programs: [] } as never}
+        onOpenProject={vi.fn()}
+        onOpenTasks={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: '延遲 3' })).toBeTruthy();
+    expect(screen.getByText('Parent task－Child task')).toBeTruthy();
+    expect(screen.getByText('Parent task－Second child')).toBeTruthy();
+    expect(screen.getByText('Standalone task')).toBeTruthy();
+    expect(screen.getByText('逾期 2 天')).toBeTruthy();
+    expect(screen.getByText('逾期 1 天')).toBeTruthy();
+    expect(screen.getByText('逾期 3 天')).toBeTruthy();
+    expect(screen.getAllByLabelText('緊急')).toHaveLength(2);
+  });
 });

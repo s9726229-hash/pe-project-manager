@@ -8,6 +8,7 @@ import type { Project, Task } from '../types';
 import { flattenLeaves } from '../services/milestoneUtils';
 import {
   getInProgressTaskLeaves,
+  getDashboardTaskLeaves,
   getOverdueTaskLeaves,
   getPendingTaskLeaves,
   getTaskProjectName,
@@ -76,14 +77,18 @@ function ProjectRiskCard({ project, today, weekEnd, onOpen }: {
   );
 }
 
-function TaskWorkbenchRow({ task, projects, overdue, onComplete }: {
+function TaskWorkbenchRow({ task, projects, overdue, today, onComplete }: {
   task: Task;
   projects: Project[];
   overdue?: boolean;
+  today: string;
   onComplete: () => void;
 }) {
   const projectName = getTaskProjectName(task, projects);
   const showProjectName = task.projectId !== DEFAULT_PROJECT_ID && projectName !== '日常雜項';
+  const overdueDays = overdue && task.dueDate
+    ? Math.round((new Date(`${today}T00:00:00`).getTime() - new Date(`${task.dueDate}T00:00:00`).getTime()) / 86_400_000)
+    : 0;
 
   return (
     <div className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3">
@@ -91,31 +96,34 @@ function TaskWorkbenchRow({ task, projects, overdue, onComplete }: {
         <Check size={12} aria-hidden="true" />
       </button>
       <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 text-xs">
           <span className="min-w-0 flex-1 break-words text-sm text-slate-200">{task.title}</span>
-          {task.urgent && <span className="flex shrink-0 items-center gap-1 text-xs text-red-400"><Flame size={12} aria-hidden="true" />緊急</span>}
+          <span className={overdue ? 'shrink-0 text-red-400' : 'shrink-0 text-slate-500'}>{task.dueDate ?? '未設定期限'}</span>
+          {overdueDays > 0 && <span className="shrink-0 text-red-400">逾期 {overdueDays} 天</span>}
+          {task.urgent && <span aria-label="緊急" className="flex shrink-0 items-center gap-1 text-red-400"><Flame size={12} aria-hidden="true" />緊急</span>}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
           {showProjectName && <span>{projectName}</span>}
-          <span className={overdue ? 'text-red-400' : undefined}>{task.dueDate ?? '未設定期限'}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function TaskSection({ title, tasks, projects, overdue, onComplete, empty }: {
+function TaskSection({ title, tasks, projects, overdue, today, showCount = true, onComplete, empty }: {
   title: string;
   tasks: Task[];
   projects: Project[];
   overdue?: boolean;
+  today: string;
+  showCount?: boolean;
   onComplete: (id: string) => void;
   empty: string;
 }) {
   return (
     <section>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">{title}<span className="ml-2 font-normal normal-case text-slate-600">{tasks.length} 件</span></h3>
-      {tasks.length === 0 ? <p className="py-2 text-sm text-slate-500">{empty}</p> : <div className="space-y-2">{tasks.map((task) => <TaskWorkbenchRow key={task.id} task={task} projects={projects} overdue={overdue} onComplete={() => onComplete(task.id)} />)}</div>}
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">{title}{showCount && <span className="ml-2 font-normal normal-case text-slate-600">{tasks.length} 件</span>}</h3>
+      {tasks.length === 0 ? <p className="py-2 text-sm text-slate-500">{empty}</p> : <div className="space-y-2">{tasks.map((task) => <TaskWorkbenchRow key={task.id} task={task} projects={projects} overdue={overdue} today={today} onComplete={() => onComplete(task.id)} />)}</div>}
     </section>
   );
 }
@@ -126,14 +134,15 @@ export default function Dashboard({ tasksApi, projectsApi, onOpenProject, onOpen
   const [activeTaskTab, setActiveTaskTab] = useState<TaskTabId>('overdue');
   const today = todayIso();
   const weekEnd = addDays(startOfWeek(today), 6);
-  const overdueTasks = sortTasksByDueDate(getOverdueTaskLeaves(tasks, today));
-  const inProgressTasks = sortTasksByDueDate(getInProgressTaskLeaves(tasks));
-  const todoTasks = sortTasksByDueDate(getUpcomingTaskLeaves(tasks, today, weekEnd));
-  const laterTasks = sortTasksByDueDate(getPendingTaskLeaves(tasks).filter((task) => !!task.dueDate && task.dueDate > weekEnd));
+  const dashboardTasks = getDashboardTaskLeaves(tasks);
+  const overdueTasks = sortTasksByDueDate(getOverdueTaskLeaves(dashboardTasks, today));
+  const inProgressTasks = sortTasksByDueDate(getInProgressTaskLeaves(dashboardTasks));
+  const todoTasks = sortTasksByDueDate(getUpcomingTaskLeaves(dashboardTasks, today, weekEnd));
+  const laterTasks = sortTasksByDueDate(getPendingTaskLeaves(dashboardTasks).filter((task) => !!task.dueDate && task.dueDate > weekEnd));
   const activeProjects = projects.filter((project) => project.id !== DEFAULT_PROJECT_ID && project.status !== '取消' && project.status !== '已完成');
   const riskProjects = activeProjects.filter((project) => flattenLeaves(project.milestones).some((milestone) => milestone.status !== '已完成' && milestone.plannedDate && milestone.plannedDate <= weekEnd));
   const taskTabs: Array<{ id: TaskTabId; label: string; tasks: Task[]; overdue?: boolean; empty: string }> = [
-    { id: 'overdue', label: '延遲', tasks: overdueTasks, overdue: true, empty: '目前沒有延遲任務。' },
+    { id: 'overdue', label: `延遲 ${overdueTasks.length}`, tasks: overdueTasks, overdue: true, empty: '目前沒有延遲任務。' },
     { id: 'todo', label: '待辦', tasks: todoTasks, empty: '今天與本週沒有待辦任務。' },
     { id: 'inProgress', label: '進行中', tasks: inProgressTasks, empty: '目前沒有進行中的任務。' },
     { id: 'later', label: '尚未啟動', tasks: laterTasks, empty: '本週後沒有待啟動的任務。' },
@@ -153,10 +162,10 @@ export default function Dashboard({ tasksApi, projectsApi, onOpenProject, onOpen
         <div className="min-w-0 space-y-6">
           <h2 className="text-sm font-semibold tracking-wide text-slate-200">立即處理</h2>
           <div role="tablist" aria-label="任務分類" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {taskTabs.map((tab) => <button key={tab.id} id={`dashboard-task-tab-${tab.id}`} type="button" role="tab" aria-selected={tab.id === activeTaskTab} aria-controls="dashboard-task-panel" onClick={() => setActiveTaskTab(tab.id)} className={`rounded-lg border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 ${tab.id === activeTaskTab ? 'border-primary-400/50 bg-primary-400/10 text-primary-300' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}>{tab.label}<span className="ml-1 text-xs opacity-70">{tab.tasks.length}</span></button>)}
+            {taskTabs.map((tab) => <button key={tab.id} id={`dashboard-task-tab-${tab.id}`} type="button" role="tab" aria-selected={tab.id === activeTaskTab} aria-controls="dashboard-task-panel" onClick={() => setActiveTaskTab(tab.id)} className={`rounded-lg border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 ${tab.id === activeTaskTab ? 'border-primary-400/50 bg-primary-400/10 text-primary-300' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'}`}>{tab.label}{tab.id !== 'overdue' && <span className="ml-1 text-xs opacity-70">{tab.tasks.length}</span>}</button>)}
           </div>
           <div id="dashboard-task-panel" role="tabpanel" aria-labelledby={`dashboard-task-tab-${selectedTaskTab.id}`} tabIndex={0}>
-            <TaskSection title={selectedTaskTab.label} tasks={selectedTaskTab.tasks} projects={projects} overdue={selectedTaskTab.overdue} onComplete={(id) => setStatus(id, '已完成')} empty={selectedTaskTab.empty} />
+            <TaskSection title={selectedTaskTab.label} tasks={selectedTaskTab.tasks} projects={projects} overdue={selectedTaskTab.overdue} today={today} showCount={selectedTaskTab.id !== 'overdue'} onComplete={(id) => setStatus(id, '已完成')} empty={selectedTaskTab.empty} />
           </div>
         </div>
         <div className="min-w-0 space-y-6">
