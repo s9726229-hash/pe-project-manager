@@ -39,7 +39,7 @@ export function getPendingTaskLeaves(tasks: Task[]): Task[] {
 }
 
 export function getOverdueTaskLeaves(tasks: Task[], today: string): Task[] {
-  return getPendingTaskLeaves(tasks).filter((task) => !!task.dueDate && task.dueDate <= today);
+  return getPendingTaskLeaves(tasks).filter((task) => !!task.dueDate && task.dueDate < today);
 }
 
 export function getUpcomingTaskLeaves(tasks: Task[], today: string, weekEnd: string): Task[] {

@@ -55,11 +55,14 @@ describe('Dashboard workbench', () => {
     );
 
     expect(screen.getByRole('heading', { name: /立即處理/ })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: /接下來/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /專案狀態/ })).toBeTruthy();
     expect(screen.getByText('Late one')).toBeTruthy();
-    expect(screen.getAllByText('Late two').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('tab', { name: /待辦/ }));
+    expect(screen.getByText('Late two')).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /進行中/ }));
     expect(screen.getByText('In progress')).toBeTruthy();
-    expect(screen.getByText(/之後任務/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /尚未啟動/ }));
+    expect(screen.getByText('Later task')).toBeTruthy();
   });
 
   it('keeps the all-tasks action available from the later-work summary', () => {
@@ -79,5 +82,47 @@ describe('Dashboard workbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '查看全部任務 →' }));
     expect(onOpenTasks).toHaveBeenCalledOnce();
+  });
+
+  it('shows task buckets as tabs and omits the default misc project label', () => {
+    vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
+
+    render(
+      <Dashboard
+        tasksApi={{
+          tasks: [
+            task({ id: 'overdue', title: 'Overdue task', dueDate: '2026-07-19' }),
+            task({ id: 'todo', title: 'This week task', dueDate: '2026-07-21' }),
+            task({ id: 'doing', title: 'Doing task', status: '進行中', dueDate: '2026-08-01' }),
+            task({ id: 'later', title: 'Later task', dueDate: '2026-08-01' }),
+            task({ id: 'misc', title: 'Misc task', projectId: 'default-misc-project', dueDate: '2026-07-21' }),
+          ],
+          setStatus: vi.fn(),
+          addTask: vi.fn(),
+        } as never}
+        projectsApi={{ projects: [project, { ...project, id: 'default-misc-project', name: '日常雜項' }] } as never}
+        casesApi={{}}
+        programsApi={{ programs: [] } as never}
+        onOpenProject={vi.fn()}
+        onOpenTasks={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('tab', { name: /延遲/ })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /待辦/ })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /進行中/ })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /尚未啟動/ })).toBeTruthy();
+    expect(screen.getByText('Overdue task')).toBeTruthy();
+    expect(screen.queryByText('日常雜項')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /待辦/ }));
+    expect(screen.getByText('This week task')).toBeTruthy();
+    expect(screen.getByText('Misc task')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: /進行中/ }));
+    expect(screen.getByText('Doing task')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: /尚未啟動/ }));
+    expect(screen.getByText('Later task')).toBeTruthy();
   });
 });
