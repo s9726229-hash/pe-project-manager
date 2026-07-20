@@ -38,6 +38,9 @@ describe('StepEditor', () => {
     expect(screen.getByText('並行啟動')).toBeTruthy();
     expect(screen.getByText('群組工期 3 天')).toBeTruthy();
     expect(screen.getAllByRole('spinbutton')).toHaveLength(3);
+    expect(screen.getAllByRole('spinbutton')[0].className).toContain('w-20');
+    expect(screen.getAllByRole('spinbutton')[0].className).toContain('text-sm');
+    expect(screen.getAllByRole('spinbutton')[0].className).toContain('border');
     expect(screen.queryByText(/群組\s*\d/)).toBeNull();
   });
 

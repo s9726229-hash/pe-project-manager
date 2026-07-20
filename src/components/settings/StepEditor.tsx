@@ -150,7 +150,9 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
               工期
               <input
                 type="number"
-                className="w-6 bg-transparent outline-none text-slate-400 [appearance:textfield] text-xs"
+                aria-label={`${s.name}工期（天）`}
+                min="0"
+                className="w-20 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-sm text-slate-100 outline-none focus:border-primary-400 [appearance:textfield]"
                 value={s.durationDays ?? ''}
                 placeholder="?"
                 onChange={(e) =>
