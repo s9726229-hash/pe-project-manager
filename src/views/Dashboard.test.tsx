@@ -1,0 +1,83 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Project, Task } from '../types';
+import Dashboard from './Dashboard';
+
+const project: Project = {
+  id: 'project-1',
+  name: 'Alpha',
+  productLine: '',
+  grade: '',
+  startDate: '2026-01-01',
+  appliedTemplateId: '',
+  status: '進行中',
+  owner: '',
+  notes: '',
+  milestones: [],
+};
+
+const task = (overrides: Partial<Task>): Task => ({
+  id: 'task-1',
+  projectId: 'project-1',
+  title: 'Task',
+  status: '待辦',
+  ...overrides,
+});
+
+describe('Dashboard workbench', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it('prioritizes every overdue task and in-progress task before upcoming work', () => {
+    vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
+
+    render(
+      <Dashboard
+        tasksApi={{
+          tasks: [
+            task({ id: 'late-one', title: 'Late one', dueDate: '2026-07-19' }),
+            task({ id: 'late-two', title: 'Late two', dueDate: '2026-07-20' }),
+            task({ id: 'doing', title: 'In progress', status: '進行中', dueDate: '2026-07-21' }),
+            task({ id: 'later', title: 'Later task', dueDate: '2026-08-01' }),
+          ],
+          setStatus: vi.fn(),
+          addTask: vi.fn(),
+        } as never}
+        projectsApi={{ projects: [project] } as never}
+        casesApi={{}}
+        programsApi={{ programs: [] } as never}
+        onOpenProject={vi.fn()}
+        onOpenTasks={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: /立即處理/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /接下來/ })).toBeTruthy();
+    expect(screen.getByText('Late one')).toBeTruthy();
+    expect(screen.getAllByText('Late two').length).toBeGreaterThan(0);
+    expect(screen.getByText('In progress')).toBeTruthy();
+    expect(screen.getByText(/之後任務/)).toBeTruthy();
+  });
+
+  it('keeps the all-tasks action available from the later-work summary', () => {
+    vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
+    const onOpenTasks = vi.fn();
+
+    render(
+      <Dashboard
+        tasksApi={{ tasks: [task({ dueDate: '2026-08-01' })], setStatus: vi.fn(), addTask: vi.fn() } as never}
+        projectsApi={{ projects: [project] } as never}
+        casesApi={{}}
+        programsApi={{ programs: [] } as never}
+        onOpenProject={vi.fn()}
+        onOpenTasks={onOpenTasks}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '查看全部任務 →' }));
+    expect(onOpenTasks).toHaveBeenCalledOnce();
+  });
+});

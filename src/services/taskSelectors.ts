@@ -38,6 +38,16 @@ export function getPendingTaskLeaves(tasks: Task[]): Task[] {
   });
 }
 
+export function getOverdueTaskLeaves(tasks: Task[], today: string): Task[] {
+  return getPendingTaskLeaves(tasks).filter((task) => !!task.dueDate && task.dueDate <= today);
+}
+
+export function getUpcomingTaskLeaves(tasks: Task[], today: string, weekEnd: string): Task[] {
+  return getPendingTaskLeaves(tasks).filter(
+    (task) => !!task.dueDate && task.dueDate >= today && task.dueDate <= weekEnd
+  );
+}
+
 export function sortTasksByDueDate(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) =>
     (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99')

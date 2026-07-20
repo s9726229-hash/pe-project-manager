@@ -5,6 +5,8 @@ import {
   getInProgressTaskLeaves,
   getPendingTaskLeaves,
   getTaskProjectName,
+  getOverdueTaskLeaves,
+  getUpcomingTaskLeaves,
   limitTaskPreview,
   sortTasksByDueDate,
 } from './taskSelectors';
@@ -78,6 +80,28 @@ describe('taskSelectors', () => {
     const completed = task({ id: 'completed', status: '已完成' });
 
     expect(getPendingTaskLeaves([waiting, todo, inProgress, completed])).toEqual([waiting, todo]);
+  });
+
+  it('selects unfinished overdue leaf tasks through the current date', () => {
+    const overdue = task({ id: 'overdue', dueDate: '2026-07-19' });
+    const dueToday = task({ id: 'today', dueDate: '2026-07-20' });
+    const future = task({ id: 'future', dueDate: '2026-07-21' });
+    const completed = task({ id: 'completed', dueDate: '2026-07-19', status: '已完成' });
+    const inProgress = task({ id: 'in-progress', dueDate: '2026-07-19', status: '進行中' });
+
+    expect(getOverdueTaskLeaves([overdue, dueToday, future, completed, inProgress], '2026-07-20'))
+      .toEqual([overdue, dueToday]);
+  });
+
+  it('selects today and the remainder of the week without completed or in-progress tasks', () => {
+    const today = task({ id: 'today', dueDate: '2026-07-20' });
+    const sunday = task({ id: 'sunday', dueDate: '2026-07-26' });
+    const nextWeek = task({ id: 'next-week', dueDate: '2026-07-27' });
+    const completed = task({ id: 'completed', dueDate: '2026-07-21', status: '已完成' });
+    const inProgress = task({ id: 'in-progress', dueDate: '2026-07-21', status: '進行中' });
+
+    expect(getUpcomingTaskLeaves([today, sunday, nextWeek, completed, inProgress], '2026-07-20', '2026-07-26'))
+      .toEqual([today, sunday]);
   });
 
   it('sorts dated tasks ascending before undated tasks without mutating input', () => {
