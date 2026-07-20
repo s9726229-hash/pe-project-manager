@@ -15,6 +15,12 @@ export function addWorkingDays(start: Date, days: number): Date {
   return d;
 }
 
+function addCalendarDays(start: Date, days: number): Date {
+  const date = new Date(start);
+  date.setDate(date.getDate() + Math.max(0, days));
+  return date;
+}
+
 // addWorkingDays 的反運算：兩個日期之間間隔幾個工作天（跳過週六日）。
 export function businessDaysBetween(startStr: string, endStr: string): number {
   const start = new Date(startStr);
@@ -28,6 +34,12 @@ export function businessDaysBetween(startStr: string, endStr: string): number {
     if (day !== 0 && day !== 6) count++;
   }
   return count;
+}
+
+function calendarDaysBetween(startStr: string, endStr: string): number {
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000));
 }
 
 export function toDateOnlyString(d: Date): string {
@@ -66,7 +78,7 @@ function scheduleSteps(steps: TemplateStep[], start: Date): ScheduleResult {
         if (sub.endDate > groupEnd) groupEnd = sub.endDate;
       } else {
         const duration = step.durationDays ?? 0;
-        const end = addWorkingDays(cursor, duration);
+        const end = addCalendarDays(cursor, duration);
         byId.set(step.id, {
           id: step.id,
           name: step.name,
@@ -117,7 +129,7 @@ function rescheduleMilestoneList(milestones: Milestone[], start: Date): Mileston
         if (sub.endDate > groupEnd) groupEnd = sub.endDate;
       } else {
         const duration = m.durationDays ?? 0;
-        const end = addWorkingDays(cursor, duration);
+        const end = addCalendarDays(cursor, duration);
         byId.set(m.id, {
           ...m,
           plannedStartDate: toDateOnlyString(cursor),
@@ -146,7 +158,7 @@ export function rescheduleAfterEndDateEdit(
   projectStartDate: string
 ): Milestone[] {
   const updated = updateMilestoneById(milestones, leafId, (m) => {
-    const duration = businessDaysBetween(m.plannedStartDate ?? projectStartDate, newEndDate);
+    const duration = calendarDaysBetween(m.plannedStartDate ?? projectStartDate, newEndDate);
     return { ...m, plannedDate: newEndDate, durationDays: duration };
   });
   return rescheduleFromStart(updated, projectStartDate);

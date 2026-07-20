@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Link2, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import type { TemplateStep } from '../../types';
 import { newId } from '../../services/storage';
 
@@ -17,14 +17,6 @@ function removeStepAt(steps: TemplateStep[], id: string): TemplateStep[] {
   return steps.filter((s) => s.id !== id);
 }
 
-function moveStep(steps: TemplateStep[], idx: number, dir: -1 | 1): TemplateStep[] {
-  const to = idx + dir;
-  if (to < 0 || to >= steps.length) return steps;
-  const next = [...steps];
-  [next[idx], next[to]] = [next[to], next[idx]];
-  return next;
-}
-
 const PARALLEL_COLORS = ['#475569', '#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#f43f5e'];
 function parallelColor(groupOrder: number): string {
   return PARALLEL_COLORS[groupOrder % PARALLEL_COLORS.length] ?? '#475569';
@@ -36,19 +28,27 @@ interface Segment {
 }
 
 function buildSegments(steps: TemplateStep[]): Segment[] {
-  const segs: Segment[] = [];
-  let i = 0;
-  while (i < steps.length) {
-    const s = steps[i];
-    const group: Array<{ step: TemplateStep; idx: number }> = [{ step: s, idx: i }];
-    while (i + 1 < steps.length && steps[i + 1].groupOrder === s.groupOrder) {
-      i++;
-      group.push({ step: steps[i], idx: i });
-    }
-    segs.push({ order: s.groupOrder, items: group });
-    i++;
-  }
-  return segs;
+  return [...new Set(steps.map((step) => step.groupOrder))]
+    .sort((a, b) => a - b)
+    .map((order) => ({
+      order,
+      items: steps.flatMap((step, idx) => step.groupOrder === order ? [{ step, idx }] : []),
+    }));
+}
+
+function moveGroup(steps: TemplateStep[], groupOrder: number, direction: -1 | 1): TemplateStep[] {
+  const groupOrders = [...new Set(steps.map((step) => step.groupOrder))].sort((a, b) => a - b);
+  const targetOrder = groupOrders[groupOrders.indexOf(groupOrder) + direction];
+  if (targetOrder === undefined) return steps;
+  return steps.map((step) => {
+    if (step.groupOrder === groupOrder) return { ...step, groupOrder: targetOrder };
+    if (step.groupOrder === targetOrder) return { ...step, groupOrder };
+    return step;
+  });
+}
+
+function groupDuration(items: Segment['items']): number {
+  return Math.max(0, ...items.map(({ step }) => step.durationDays ?? 0));
 }
 
 export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorProps) {
@@ -86,15 +86,20 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
     onChange(updateStepAt(steps, parent.id, { subSteps, checklistItems: undefined, durationDays: undefined }));
   }
 
-  function handleGroupOrderChange(s: TemplateStep, newOrder: number, subSteps: TemplateStep[], onSubChange: (s: TemplateStep[]) => void) {
-    const updated = updateStepAt(subSteps, s.id, { groupOrder: newOrder });
-    onSubChange([...updated].sort((a, b) => a.groupOrder - b.groupOrder));
+  function moveToAdjacentGroup(s: TemplateStep, direction: -1 | 1, siblings: TemplateStep[], onSibChange: (next: TemplateStep[]) => void) {
+    const groupOrders = [...new Set(siblings.map((step) => step.groupOrder))].sort((a, b) => a - b);
+    const currentIndex = groupOrders.indexOf(s.groupOrder);
+    const target = groupOrders[currentIndex + direction];
+    if (target !== undefined) onSibChange(updateStepAt(siblings, s.id, { groupOrder: target }));
+  }
+
+  function addParallelStep(s: TemplateStep, siblings: TemplateStep[], onSibChange: (next: TemplateStep[]) => void) {
+    onSibChange([...siblings, { id: newId(), name: '新子步驟', groupOrder: s.groupOrder }]);
   }
 
   // ─── Leaf row (inside a group container) ───
   function renderLeaf(
     s: TemplateStep,
-    idx: number,
     siblings: TemplateStep[],
     onSibChange: (next: TemplateStep[]) => void
   ) {
@@ -102,21 +107,32 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
       <div key={s.id}>
         {/* Step row */}
         <div className="flex items-center gap-1.5 px-3 py-2.5 group/row hover:bg-slate-800/30 transition-colors">
-          {/* Move buttons */}
-          <div className="flex flex-col shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
+          <div className="flex shrink-0 gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
             <button
-              onClick={() => onSibChange(moveStep(siblings, idx, -1))}
-              disabled={idx === 0}
+              aria-label={`${s.name}移到上一組`}
+              title="移到上一組"
+              onClick={() => moveToAdjacentGroup(s, -1, siblings, onSibChange)}
+              disabled={!buildSegments(siblings).some((segment) => segment.order < s.groupOrder)}
               className="text-slate-600 hover:text-slate-300 disabled:opacity-20 p-0.5"
             >
               <ArrowUp size={11} />
             </button>
             <button
-              onClick={() => onSibChange(moveStep(siblings, idx, 1))}
-              disabled={idx === siblings.length - 1}
+              aria-label={`${s.name}移到下一組`}
+              title="移到下一組"
+              onClick={() => moveToAdjacentGroup(s, 1, siblings, onSibChange)}
+              disabled={!buildSegments(siblings).some((segment) => segment.order > s.groupOrder)}
               className="text-slate-600 hover:text-slate-300 disabled:opacity-20 p-0.5"
             >
               <ArrowDown size={11} />
+            </button>
+            <button
+              aria-label={`${s.name}加入同組並行任務`}
+              title="加入同組並行任務"
+              onClick={() => addParallelStep(s, siblings, onSibChange)}
+              className="text-slate-600 hover:text-primary-400 p-0.5"
+            >
+              <Plus size={11} />
             </button>
           </div>
 
@@ -131,16 +147,7 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
           {/* Right badges */}
           <div className="flex items-center gap-2 shrink-0 text-xs text-slate-500 font-mono">
             <span className="flex items-center gap-0.5 whitespace-nowrap">
-              [<Link2 size={10} className="inline shrink-0" />群組&thinsp;
-              <input
-                type="number"
-                className="w-5 bg-transparent outline-none text-slate-400 [appearance:textfield] text-xs"
-                value={s.groupOrder}
-                onChange={(e) => handleGroupOrderChange(s, Number(e.target.value), siblings, onSibChange)}
-              />]
-            </span>
-            <span className="flex items-center gap-0.5 whitespace-nowrap">
-              [工期&thinsp;
+              工期
               <input
                 type="number"
                 className="w-6 bg-transparent outline-none text-slate-400 [appearance:textfield] text-xs"
@@ -204,10 +211,9 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
   }
 
   // ─── Group container ───
-  function renderGroup(s: TemplateStep, idx: number) {
+  function renderGroup(s: TemplateStep) {
     const isCollapsed = collapsed.has(s.id);
     const subSteps = s.subSteps ?? [];
-    const totalDays = subSteps.reduce((acc, sub) => acc + (sub.durationDays ?? 0), 0);
     const subSegs = buildSegments(subSteps);
     const accentColor = parallelColor(s.groupOrder);
 
@@ -233,15 +239,12 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
             onChange={(e) => onChange(updateStepAt(steps, s.id, { name: e.target.value }))}
             placeholder="群組名稱"
           />
-          {totalDays > 0 && (
-            <span className="text-xs text-slate-400 bg-slate-700 rounded px-2 py-0.5 shrink-0">共 {totalDays} 天</span>
-          )}
           {/* Move + Delete (hover) */}
           <div className="flex items-center gap-1 opacity-0 group-hover/hdr:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => onChange(moveStep(steps, idx, -1))} disabled={idx === 0} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
+            <button aria-label={`${s.name}移到上一組`} title="移到上一組" onClick={() => onChange(moveGroup(steps, s.groupOrder, -1))} disabled={!buildSegments(steps).some((segment) => segment.order < s.groupOrder)} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
               <ArrowUp size={12} />
             </button>
-            <button onClick={() => onChange(moveStep(steps, idx, 1))} disabled={idx === steps.length - 1} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
+            <button aria-label={`${s.name}移到下一組`} title="移到下一組" onClick={() => onChange(moveGroup(steps, s.groupOrder, 1))} disabled={!buildSegments(steps).some((segment) => segment.order > s.groupOrder)} className="text-slate-500 hover:text-slate-200 disabled:opacity-20 p-0.5">
               <ArrowDown size={12} />
             </button>
             <button onClick={() => onChange(removeStepAt(steps, s.id))} className="text-slate-500 hover:text-red-400 p-0.5">
@@ -253,27 +256,19 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
         {/* Body */}
         {!isCollapsed && (
           <div className="bg-slate-900/60 divide-y divide-slate-800/60">
-            {subSegs.map((seg) => {
+            {subSegs.map((seg, segmentIndex) => {
               const isParallel = seg.items.length > 1;
               const color = parallelColor(seg.order);
-
-              if (!isParallel) {
-                const { step: sub, idx: subIdx } = seg.items[0];
-                return renderLeaf(sub, subIdx, subSteps, onSubChange);
-              }
-
-              // Parallel group separator
               return (
                 <div key={`pg-${seg.order}`}>
-                  <div className="flex items-center gap-2 px-4 py-1.5">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/40">
                     <div className="flex-1 h-px" style={{ background: color, opacity: 0.3 }} />
-                    <span className="text-xs whitespace-nowrap" style={{ color, opacity: 0.9 }}>⇉ 並行啟動</span>
+                    <span className="text-xs whitespace-nowrap text-slate-300">第 {segmentIndex + 1} 組</span>
+                    <span className="text-xs whitespace-nowrap" style={{ color, opacity: 0.9 }}>{isParallel ? '並行啟動' : '依序啟動'}</span>
+                    <span className="text-xs whitespace-nowrap text-slate-400">群組工期 {groupDuration(seg.items)} 天</span>
                     <div className="flex-1 h-px" style={{ background: color, opacity: 0.3 }} />
                   </div>
-                  {seg.items.map(({ step: sub, idx: subIdx }) => renderLeaf(sub, subIdx, subSteps, onSubChange))}
-                  <div className="flex items-center gap-2 px-4 py-1">
-                    <div className="flex-1 h-px" style={{ background: color, opacity: 0.15 }} />
-                  </div>
+                  {seg.items.map(({ step: sub }) => renderLeaf(sub, subSteps, onSubChange))}
                 </div>
               );
             })}
@@ -301,10 +296,10 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
       {topSegs.map((seg) => {
         // Top-level usually each group has unique order; single item = render as group or leaf
         if (seg.items.length === 1) {
-          const { step: s, idx } = seg.items[0];
-          if (s.subSteps && s.subSteps.length > 0) return renderGroup(s, idx);
+          const { step: s } = seg.items[0];
+          if (s.subSteps && s.subSteps.length > 0) return renderGroup(s);
           // Top-level leaf (rare)
-          return renderLeaf(s, idx, steps, onChange);
+          return renderLeaf(s, steps, onChange);
         }
         // Top-level parallel (very rare but supported)
         const color = parallelColor(seg.order);
@@ -316,8 +311,8 @@ export default function StepEditor({ steps, onChange, depth = 0 }: StepEditorPro
               ⇉ 並行啟動
             </div>
             <div className="space-y-2">
-              {seg.items.map(({ step: s, idx }) =>
-                s.subSteps && s.subSteps.length > 0 ? renderGroup(s, idx) : renderLeaf(s, idx, steps, onChange)
+              {seg.items.map(({ step: s }) =>
+                s.subSteps && s.subSteps.length > 0 ? renderGroup(s) : renderLeaf(s, steps, onChange)
               )}
             </div>
           </div>
