@@ -136,7 +136,9 @@ export default function Dashboard({ tasksApi, projectsApi, onOpenProject, onOpen
   const weekEnd = addDays(startOfWeek(today), 6);
   const dashboardTasks = getDashboardTaskLeaves(tasks);
   const overdueTasks = sortTasksByDueDate(getOverdueTaskLeaves(dashboardTasks, today));
-  const inProgressTasks = sortTasksByDueDate(getInProgressTaskLeaves(dashboardTasks));
+  const inProgressTasks = sortTasksByDueDate(
+    getInProgressTaskLeaves(dashboardTasks).filter((task) => !task.dueDate || task.dueDate >= today)
+  );
   const todoTasks = sortTasksByDueDate(getUpcomingTaskLeaves(dashboardTasks, today, weekEnd));
   const laterTasks = sortTasksByDueDate(getPendingTaskLeaves(dashboardTasks).filter((task) => !!task.dueDate && task.dueDate > weekEnd));
   const activeProjects = projects.filter((project) => project.id !== DEFAULT_PROJECT_ID && project.status !== '取消' && project.status !== '已完成');

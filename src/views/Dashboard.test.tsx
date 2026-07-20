@@ -126,6 +126,33 @@ describe('Dashboard workbench', () => {
     expect(screen.getByText('Later task')).toBeTruthy();
   });
 
+  it('puts overdue in-progress work only in the overdue tab', () => {
+    vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
+
+    render(
+      <Dashboard
+        tasksApi={{
+          tasks: [
+            task({ id: 'overdue-doing', title: 'Overdue in-progress task', status: '進行中', dueDate: '2026-07-19' }),
+            task({ id: 'current-doing', title: 'Current in-progress task', status: '進行中', dueDate: '2026-07-21' }),
+          ],
+          setStatus: vi.fn(),
+          addTask: vi.fn(),
+        } as never}
+        projectsApi={{ projects: [project] } as never}
+        casesApi={{}}
+        programsApi={{ programs: [] } as never}
+        onOpenProject={vi.fn()}
+        onOpenTasks={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Overdue in-progress task')).toBeTruthy();
+    fireEvent.click(screen.getByRole('tab', { name: /進行中/ }));
+    expect(screen.getByText('Current in-progress task')).toBeTruthy();
+    expect(screen.queryByText('Overdue in-progress task')).toBeNull();
+  });
+
   it('shows parent context, compact due metadata, and overdue-day detail for every overdue leaf', () => {
     vi.setSystemTime(new Date('2026-07-20T12:00:00Z'));
 

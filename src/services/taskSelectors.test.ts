@@ -82,7 +82,7 @@ describe('taskSelectors', () => {
     expect(getPendingTaskLeaves([waiting, todo, inProgress, completed])).toEqual([waiting, todo]);
   });
 
-  it('selects only unfinished leaf tasks due before today as overdue', () => {
+  it('selects every non-completed leaf task due before today as overdue', () => {
     const overdue = task({ id: 'overdue', dueDate: '2026-07-19' });
     const dueToday = task({ id: 'today', dueDate: '2026-07-20' });
     const future = task({ id: 'future', dueDate: '2026-07-21' });
@@ -90,7 +90,7 @@ describe('taskSelectors', () => {
     const inProgress = task({ id: 'in-progress', dueDate: '2026-07-19', status: '進行中' });
 
     expect(getOverdueTaskLeaves([overdue, dueToday, future, completed, inProgress], '2026-07-20'))
-      .toEqual([overdue]);
+      .toEqual([overdue, inProgress]);
   });
 
   it('selects today and the remainder of the week without completed or in-progress tasks', () => {
